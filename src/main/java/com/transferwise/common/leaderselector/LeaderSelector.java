@@ -163,22 +163,28 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
         curatorFramework.getConnectionStateListenable().addListener(this.connectionStateListener, executorService);
 
         executorService.submit(() -> {
-            while (!stopRequested) {
-                if (disconnectedTimestamp != -1) {
-                    sleep(tickDuration.toMillis());
-                } else {
-                    while (!stopRequested) {
-                        long timeToSleepMs = lastWorkTryingTimeMs == -1 ? -1 :
-                            lastWorkTryingTimeMs - System.currentTimeMillis() + minimumWorkTime.toMillis();
-                        if (timeToSleepMs > 0) {
-                            sleep(tickDuration.toMillis());
-                        } else {
-                            break;
+            try {
+                while (!stopRequested) {
+                    if (disconnectedTimestamp != -1) {
+                        sleep(tickDuration.toMillis());
+                    } else {
+                        while (!stopRequested) {
+                            long timeToSleepMs = lastWorkTryingTimeMs == -1 ? -1 :
+                                lastWorkTryingTimeMs - System.currentTimeMillis() + minimumWorkTime.toMillis();
+                            if (timeToSleepMs > 0) {
+                                sleep(tickDuration.toMillis());
+                            } else {
+                                break;
+                            }
                         }
+                        lastWorkTryingTimeMs = System.currentTimeMillis();
+                        tryToWork();
                     }
-                    lastWorkTryingTimeMs = System.currentTimeMillis();
-                    tryToWork();
                 }
+            }
+            catch(Throwable t){
+                log.error(t.getMessage(), t);
+                sleep(tickDuration.toMillis());
             }
         });
     }
@@ -262,6 +268,17 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
                                 waitForStateChange();
                                 return shouldStop();
                             });
+                        }
+
+                        @Override
+                        public void workAsyncUntilShouldStop(Runnable startLogic, Runnable stopLogic){
+                            try {
+                                startLogic.run();
+                                waitUntilShouldStop();
+                            }
+                            finally{
+                                stopLogic.run();
+                            }
                         }
                     });
                 } finally {

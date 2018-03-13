@@ -24,5 +24,7 @@ public interface Leader {
          * Returns true, if leadership is going to be taken away.
          */
         boolean waitUntilShouldStopOrStateChanges();
+
+        void workAsyncUntilShouldStop(Runnable startLogic, Runnable stopLogic);
     }
 }

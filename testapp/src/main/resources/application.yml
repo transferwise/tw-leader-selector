@@ -1,0 +1,14 @@
+spring:
+  profiles: node1
+
+server:
+  port:
+    11223
+---
+
+spring:
+  profiles: node2
+
+server:
+  port:
+    11224

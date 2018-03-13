@@ -1,0 +1,22 @@
+apply plugin: 'java'
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'com.transferwise.gradle.lib'
+apply plugin: 'com.transferwise.gradle.idea'
+apply plugin: 'com.transferwise.gradle.test'
+apply plugin: 'com.transferwise.gradle.checks'
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.boot:spring-boot-dependencies:${springBootVersion}"
+	}
+}
+
+dependencies{
+	compile "org.springframework.boot:spring-boot-starter-web"
+
+	compile 'org.projectlombok:lombok'
+	compile 'org.slf4j:slf4j-api'
+	compile group: 'org.apache.zookeeper', name: 'zookeeper', version: '3.4.11'
+
+	compile project(":")
+}

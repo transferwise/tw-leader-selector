@@ -1,0 +1,64 @@
+buildscript {
+	repositories {
+		mavenLocal()
+		maven { url "http://artifacts.transferwise.com/artifactory/libs-release" }
+	}
+
+	dependencies {
+		classpath 'net.researchgate:gradle-release:2.6.0'
+		classpath 'io.spring.gradle:dependency-management-plugin:1.0.1.RELEASE'
+		classpath 'com.transferwise.gradle:common-plugins:1.5'
+	}
+}
+
+plugins {
+	id 'org.springframework.boot' version "1.5.10.RELEASE" apply false
+}
+
+apply plugin: 'com.transferwise.gradle.lib'
+apply plugin: 'com.transferwise.gradle.lib-upload'
+apply plugin: 'com.transferwise.gradle.idea'
+apply plugin: 'com.transferwise.gradle.test'
+apply plugin: 'com.transferwise.gradle.checks'
+
+group "com.transferwise.common"
+
+apply plugin: 'io.spring.dependency-management'
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.boot:spring-boot-starter-parent:$springBootVersion"
+	}
+}
+
+dependencies{
+	compileOnly 'org.projectlombok:lombok'
+
+	compile 'org.slf4j:slf4j-api'
+
+	compile group: 'org.apache.zookeeper', name: 'zookeeper', version: '3.4.11'
+
+	compile ('org.apache.curator:curator-framework:4.0.0') {
+		exclude module: 'slf4j-api'
+		exclude module: 'log4j'
+		exclude module: 'zookeeper'
+	}
+
+	compile ('org.apache.curator:curator-recipes:4.0.0') {
+		exclude module: 'slf4j-api'
+		exclude module: 'log4j'
+	}
+
+	compile 'com.google.code.findbugs:annotations:3.0.1'
+	compile 'org.apache.commons:commons-lang3:3.7'
+
+	compile 'com.transferwise:common:0.58'
+}
+
+apply plugin: 'net.researchgate.release'
+
+afterReleaseBuild.dependsOn publish
+
+release {
+	failOnUnversionedFiles = true
+	tagTemplate = "${project.name}-${project.version}"
+}

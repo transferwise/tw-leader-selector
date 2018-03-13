@@ -3,9 +3,9 @@ package com.transferwise.common.leaderselector;
 import java.util.concurrent.CompletableFuture;
 
 public interface LeaderSelectorLifecycle {
-	void start();
+    void start();
 
-	CompletableFuture stop();
+    CompletableFuture stop();
 
-	boolean isWorking();
+    boolean isWorking();
 }

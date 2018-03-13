@@ -15,58 +15,59 @@ import java.util.concurrent.Executors;
 @Component
 @Slf4j
 public class Leader2 implements SmartLifecycle {
-	private LeaderSelectorLifecycle leaderSelector;
-	private CuratorFramework curatorFramework;
+    private LeaderSelectorLifecycle leaderSelector;
+    private CuratorFramework curatorFramework;
 
-	public Leader2(CuratorFramework curatorFramework) {
-		this.curatorFramework = curatorFramework;
-	}
+    public Leader2(CuratorFramework curatorFramework) {
+        this.curatorFramework = curatorFramework;
+    }
 
-	@PostConstruct
-	public void init() {
-		ExecutorService executorService = Executors.newCachedThreadPool();
-		leaderSelector = new LeaderSelector("leader2", curatorFramework,
-				"/tw/leaderSelector/testApp/leader2", executorService,
-				state -> {
-					for (int i=0; i<10; i++){
-						if (state.shouldStop()){
-							return;
-						}
-						log.info("Doing work for chunk " + i + ".");
-						ExceptionUtils.runUnchecked(() -> Thread.sleep(1));
-					}
-				});
-	}
+    @PostConstruct
+    @SuppressWarnings("checkstyle:magicnumber")
+    public void init() {
+        ExecutorService executorService = Executors.newCachedThreadPool();
+        leaderSelector = new LeaderSelector("leader2", curatorFramework,
+            "/tw/leaderSelector/testApp/leader2", executorService,
+            state -> {
+                for (int i = 0; i < 10; i++) {
+                    if (state.shouldStop()) {
+                        return;
+                    }
+                    log.info("Doing work for chunk " + i + ".");
+                    ExceptionUtils.runUnchecked(() -> Thread.sleep(1));
+                }
+            });
+    }
 
-	@Override
-	public boolean isAutoStartup() {
-		return true;
-	}
+    @Override
+    public boolean isAutoStartup() {
+        return true;
+    }
 
-	@Override
-	public void stop(Runnable callback) {
-		leaderSelector.stop().thenAccept((r) -> {
-			callback.run();
-		});
-	}
+    @Override
+    public void stop(Runnable callback) {
+        leaderSelector.stop().thenAccept((r) -> {
+            callback.run();
+        });
+    }
 
-	@Override
-	public void start() {
-		leaderSelector.start();
-	}
+    @Override
+    public void start() {
+        leaderSelector.start();
+    }
 
-	@Override
-	public void stop() {
-		leaderSelector.stop();
-	}
+    @Override
+    public void stop() {
+        leaderSelector.stop();
+    }
 
-	@Override
-	public boolean isRunning() {
-		return false;
-	}
+    @Override
+    public boolean isRunning() {
+        return false;
+    }
 
-	@Override
-	public int getPhase() {
-		return 0;
-	}
+    @Override
+    public int getPhase() {
+        return 0;
+    }
 }

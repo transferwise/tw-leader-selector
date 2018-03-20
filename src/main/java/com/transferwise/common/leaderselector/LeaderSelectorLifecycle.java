@@ -1,11 +1,15 @@
 package com.transferwise.common.leaderselector;
 
-import java.util.concurrent.CompletableFuture;
+import java.time.Duration;
 
 public interface LeaderSelectorLifecycle {
     void start();
 
-    CompletableFuture stop();
+    void stop();
+
+    boolean hasStopped();
+
+    boolean waitUntilStopped(Duration waitTime);
 
     boolean isWorking();
 }

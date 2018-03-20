@@ -1,9 +1,17 @@
+leader1.enabled: true
+leader2.enabled: false
+leader3.enabled: false
+leader4.enabled: false
+
+---
+
 spring:
   profiles: node1
 
 server:
   port:
     11223
+
 ---
 
 spring:

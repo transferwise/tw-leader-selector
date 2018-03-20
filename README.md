@@ -15,7 +15,7 @@ Example code for simple use case:
 ```java
 leaderSelector = new LeaderSelector("leader1", curatorFramework, 
 		"/tw/leaderSelector/testApp/leader1", executorService,
-		state -> {
+		control -> {
 			log.info("I'm now the leader and will do some work.");
 		});
 ```
@@ -27,9 +27,9 @@ If you are doing transactional work, it is advised to do a check just before the
 ```java
 leaderSelector = new LeaderSelector("leader2", curatorFramework, 
 		"/tw/leaderSelector/testApp/leader2", executorService,
-		state -> {
+		control -> {
 			for (int i=0; i<10; i++){
-				if (state.shouldStop()){
+				if (control.shouldStop()){
 					return;
 				}
 				log.info("Doing work for chunk " + i + ".");

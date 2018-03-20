@@ -20,6 +20,7 @@ apply plugin: 'com.transferwise.gradle.lib-upload'
 apply plugin: 'com.transferwise.gradle.idea'
 apply plugin: 'com.transferwise.gradle.test'
 apply plugin: 'com.transferwise.gradle.checks'
+apply plugin: 'groovy'
 
 group "com.transferwise.common"
 
@@ -31,7 +32,7 @@ dependencyManagement {
 }
 
 dependencies{
-	compileOnly 'org.projectlombok:lombok'
+	compile 'org.projectlombok:lombok'
 
 	compile 'org.slf4j:slf4j-api'
 
@@ -51,7 +52,14 @@ dependencies{
 	compile 'com.google.code.findbugs:annotations:3.0.1'
 	compile 'org.apache.commons:commons-lang3:3.7'
 
-	compile 'com.transferwise:common:0.58'
+	compile 'com.transferwise:common:0.59'
+
+    testCompile 'org.springframework.boot:spring-boot-starter-test'
+    testCompile 'cglib:cglib-nodep:3.2.4'
+    testCompile 'org.spockframework:spock-core:1.1-groovy-2.4'
+    testCompile 'org.spockframework:spock-spring:1.1-groovy-2.4'
+    testCompile 'com.playtika.testcontainers:embedded-kafka:1.5'
+    testCompile('com.transferwise:tw-test:0.23')
 }
 
 apply plugin: 'net.researchgate.release'

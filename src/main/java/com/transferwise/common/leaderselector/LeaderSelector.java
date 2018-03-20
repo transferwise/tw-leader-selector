@@ -1,5 +1,6 @@
 package com.transferwise.common.leaderselector;
 
+import com.transferwise.common.concurrency.LockUtils;
 import com.transferwise.common.utils.ExceptionUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
@@ -9,20 +10,18 @@ import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.zookeeper.KeeperException;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static com.transferwise.common.utils.ExceptionUtils.callUnchecked;
 import static com.transferwise.common.utils.ExceptionUtils.runUnchecked;
 
 @Slf4j
@@ -31,6 +30,8 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
     private Leader leader;
     private CuratorFramework curatorFramework;
     private ExecutorService executorService;
+    private Clock clock;
+
     /**
      * The node path in Zookeeper, where we track the leadership.
      */
@@ -39,10 +40,6 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
      * Unique nodeId we will save into Zookeeper's leader-node, so we are able to later verify by other means if we still are a leader.
      */
     private byte[] nodeId;
-    /**
-     * The name will be added to log messages and is not used for anything else.
-     */
-    private String name;
     /**
      * The minimum interval between taking leaderships. It is non-zero by default, so novice users can not overload
      * the Zookeeper cluster. It is very rarely needed to be changed.
@@ -54,16 +51,16 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
     private Duration tickDuration = Duration.ofSeconds(2);
     /**
      * How often do we check if we are still a leader. Value of -1 turns this off.
-     *
+     * <p>
      * After every this interval, we will request leader's node data and compare it to our nodeId.
-     *
+     * <p>
      * This kind of check is meant to be as an assertion to verify the correctness of LeaderSelector algorithms.
      */
     @SuppressWarnings("checkstyle:magicnumber")
     private Duration leaderGuaranteeCheckInterval = Duration.ofSeconds(10);
     /**
      * On a very unstable network we could get very rapid disconnections and reconnects while the Zookeeper session itself is stable.
-     *
+     * <p>
      * In this case we do not want to interrupt the leader's work too often. Only when the specified time passes after a disconnect,
      * we will consider as connection (and also the session) as lost and will request current leader to stop all work.
      */
@@ -71,9 +68,9 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
     private Duration connectionLossConfirmedDuration = Duration.ofSeconds(5);
     /**
      * Number of work iterations until the leader selector will be automatically stopped.
-     *
+     * <p>
      * -1 has special value of indefinite iterations until explicit stop is called.
-     *
+     * <p>
      * This parameter can be useful for one-time workloads.
      */
     private int workIterationsUntilStop = -1;
@@ -84,17 +81,17 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
     private volatile boolean working;
     private volatile long disconnectedTimestamp = -1;
     private volatile boolean stopWorkIterationRequested = false;
-    private volatile CompletableFuture<Void> stopFuture;
+
     private Lock stateLock;
     private Condition stateCondition;
 
-    private long lastLeaderhipGuaranteeTestTime = 0;
-    private boolean lastLeadershipGuranteeTestResult;
+    private volatile long lastLeaderhipGuaranteeTestTime = 0;
+    private volatile boolean lastLeadershipGuranteeTestResult;
 
     private long workIterationsDone = 0;
     private long lastWorkTryingTimeMs = -1;
 
-    public LeaderSelector(String name, CuratorFramework curatorFramework, String leaderPath, ExecutorService executorService, Leader leader) {
+    public LeaderSelector(CuratorFramework curatorFramework, String leaderPath, ExecutorService executorService, Leader leader) {
         this.leader = leader;
         this.curatorFramework = curatorFramework;
         this.executorService = executorService;
@@ -102,7 +99,7 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
         this.stateLock = new ReentrantLock();
         this.stateCondition = stateLock.newCondition();
         this.nodeId = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
-        this.name = name;
+        this.clock = Clock.systemUTC();
 
         this.mutex = new InterProcessMutex(curatorFramework, leaderPath) {
             @Override
@@ -112,15 +109,15 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
         };
 
         this.connectionStateListener = (client, newState) -> {
-            withStateLock(() -> {
+            LockUtils.withLock(stateLock, () -> {
                 if (newState == ConnectionState.LOST) {
                     stopWorkIterationRequested = true;
                     if (disconnectedTimestamp == -1) {
-                        disconnectedTimestamp = System.currentTimeMillis();
+                        disconnectedTimestamp = currentTimeMillis();
                     }
                 } else if (newState == ConnectionState.SUSPENDED) {
                     if (disconnectedTimestamp == -1) {
-                        disconnectedTimestamp = System.currentTimeMillis();
+                        disconnectedTimestamp = currentTimeMillis();
                     }
                 } else if (newState == ConnectionState.RECONNECTED) {
                     if (!considerAsConnected()) {
@@ -158,62 +155,74 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
         return this;
     }
 
+    public LeaderSelector setClock(Clock clock) {
+        this.clock = clock;
+        return this;
+    }
+
     @Override
     public void start() {
         curatorFramework.getConnectionStateListenable().addListener(this.connectionStateListener, executorService);
 
         executorService.submit(() -> {
-            try {
-                while (!stopRequested) {
+            while (!stopRequested) {
+                try {
                     if (disconnectedTimestamp != -1) {
                         sleep(tickDuration.toMillis());
                     } else {
                         while (!stopRequested) {
                             long timeToSleepMs = lastWorkTryingTimeMs == -1 ? -1 :
-                                lastWorkTryingTimeMs - System.currentTimeMillis() + minimumWorkTime.toMillis();
+                                lastWorkTryingTimeMs - currentTimeMillis() + minimumWorkTime.toMillis();
                             if (timeToSleepMs > 0) {
                                 sleep(tickDuration.toMillis());
                             } else {
                                 break;
                             }
                         }
-                        lastWorkTryingTimeMs = System.currentTimeMillis();
+                        lastWorkTryingTimeMs = currentTimeMillis();
                         tryToWork();
                     }
+                } catch (Throwable t) {
+                    log.error(t.getMessage(), t);
+                    sleep(tickDuration.toMillis());
                 }
-            }
-            catch(Throwable t){
-                log.error(t.getMessage(), t);
-                sleep(tickDuration.toMillis());
             }
         });
     }
 
     @Override
-    public CompletableFuture stop() {
-        if (stopFuture != null) {
-            return stopFuture;
-        }
-
-        curatorFramework.getConnectionStateListenable().removeListener(this.connectionStateListener);
-
-        return withStateLock(() -> {
-            stopFuture = new CompletableFuture<>();
+    public void stop() {
+        LockUtils.withLock(stateLock, () -> {
+            curatorFramework.getConnectionStateListenable().removeListener(this.connectionStateListener);
             stopRequested = true;
-
-            if (!working) {
-                stopFuture.complete(null);
-            }
-
             stateCondition.signalAll();
-
-            return stopFuture;
         });
+    }
+
+    @Override
+    public boolean hasStopped() {
+        return LockUtils.withLock(stateLock, () -> stopRequested && !working);
+    }
+
+    @Override
+    public boolean waitUntilStopped(Duration waitTime) {
+        long start = currentTimeMillis();
+        while (currentTimeMillis() < start + waitTime.toMillis()) {
+            if (hasStopped()) {
+                return true;
+            }
+            LockUtils.withLock(stateLock, () -> {
+                ExceptionUtils.runUnchecked(() -> {
+                    stateCondition.await(start - currentTimeMillis() + waitTime.toMillis(), TimeUnit.MILLISECONDS);
+                });
+            });
+        }
+        return hasStopped();
     }
 
     @Override
     public boolean isWorking() {
-        return withStateLock(() -> !working);
+        return LockUtils.withLock(stateLock, () -> !working);
     }
 
     private void tryToWork() {
@@ -230,7 +239,7 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
                     sleep(tickDuration.toMillis());
                 }
             }
-            boolean doWork = lockAcquired && withStateLock(() -> {
+            boolean doWork = lockAcquired && LockUtils.withLock(stateLock, () -> {
                 if (stopRequested || !considerAsConnected()) {
                     return false;
                 }
@@ -239,54 +248,15 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
                 return true;
             });
             if (doWork) {
-                lastLeaderhipGuaranteeTestTime = System.currentTimeMillis();
+                lastLeaderhipGuaranteeTestTime = currentTimeMillis();
                 lastLeadershipGuranteeTestResult = true;
                 workIterationsDone++;
 
                 try {
-                    leader.work(new Leader.LeadershipState() {
-                        @Override
-                        public boolean shouldStop() {
-                            return stopRequested || stopWorkIterationRequested || !considerAsConnected() || !isNodeStillTheLeader();
-                        }
-
-                        @Override
-                        public void waitUntilShouldStop() {
-                            while (true) {
-                                if (waitUntilShouldStopOrStateChanges()) {
-                                    return;
-                                }
-                            }
-                        }
-
-                        @Override
-                        public boolean waitUntilShouldStopOrStateChanges() {
-                            return withStateLock(() -> {
-                                if (shouldStop()) {
-                                    return true;
-                                }
-                                waitForStateChange();
-                                return shouldStop();
-                            });
-                        }
-
-                        @Override
-                        public void workAsyncUntilShouldStop(Runnable startLogic, Runnable stopLogic){
-                            try {
-                                startLogic.run();
-                                waitUntilShouldStop();
-                            }
-                            finally{
-                                stopLogic.run();
-                            }
-                        }
-                    });
+                    doWork();
                 } finally {
-                    withStateLock(() -> {
+                    LockUtils.withLock(stateLock, () -> {
                         working = false;
-                        if (stopFuture != null) {
-                            stopFuture.complete(null);
-                        }
                         stateCondition.signalAll();
                     });
                 }
@@ -305,50 +275,83 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
         }
     }
 
+    private void doWork() {
+        leader.work(new Leader.Control() {
+            @Override
+            public boolean shouldStop() {
+                return stopRequested || stopWorkIterationRequested || !considerAsConnected() || !isNodeStillTheLeader();
+            }
+
+            @Override
+            public boolean waitUntilShouldStop(Duration waitTime) {
+                long start = currentTimeMillis();
+                while (currentTimeMillis() < start + waitTime.toMillis()) {
+                    if (shouldStop()) {
+                        return true;
+                    }
+                    LockUtils.withLock(stateLock, () -> {
+                        long timeToWait = Math.min(waitTime.toMillis(), tickDuration.toMillis()) + start;
+                        long disconnectedTimestampTmp = disconnectedTimestamp;
+                        if (disconnectedTimestampTmp != -1) {
+                            timeToWait = Math.min(timeToWait, disconnectedTimestampTmp + connectionLossConfirmedDuration.toMillis());
+                        }
+                        if (lastLeaderhipGuaranteeTestTime != 0) {
+                            if (leaderGuaranteeCheckInterval.toMillis() <= 0) { // We should still avoid cpu burn.
+                                timeToWait = Math.min(timeToWait, tickDuration.toMillis());
+                            } else {
+                                timeToWait = Math.min(timeToWait, lastLeaderhipGuaranteeTestTime + leaderGuaranteeCheckInterval.toMillis());
+                            }
+                        }
+                        long timeToWaitFinal = timeToWait;
+                        ExceptionUtils.runUnchecked(() -> {
+                            stateCondition.await(timeToWaitFinal - currentTimeMillis(), TimeUnit.MILLISECONDS);
+                        });
+                    });
+                }
+                return shouldStop();
+            }
+
+            @Override
+            @SuppressWarnings("checkstyle:magicnumber")
+            public void workAsyncUntilShouldStop(Runnable startLogic, Runnable stopLogic) {
+                try {
+                    startLogic.run();
+                    waitUntilShouldStop(Duration.ofDays(3650));
+                } finally {
+                    stopLogic.run();
+                }
+            }
+        });
+    }
+
     private boolean considerAsConnected() {
-        return disconnectedTimestamp == -1 || disconnectedTimestamp + connectionLossConfirmedDuration.toMillis() > System.currentTimeMillis();
+        return disconnectedTimestamp == -1 || disconnectedTimestamp + connectionLossConfirmedDuration.toMillis() > currentTimeMillis();
     }
 
     private boolean isNodeStillTheLeader() {
-        if (lastLeaderhipGuaranteeTestTime == 0 || System.currentTimeMillis() > lastLeaderhipGuaranteeTestTime + leaderGuaranteeCheckInterval.toMillis()) {
-            try {
-                byte[] currentLeaderId = fetchCurrentLeaderId();
+        return LockUtils.withLock(stateLock, () -> {
+            boolean currentLastLeadershipGuranteeTestResult = lastLeadershipGuranteeTestResult;
+            if (lastLeaderhipGuaranteeTestTime == 0 || currentTimeMillis() > lastLeaderhipGuaranteeTestTime + leaderGuaranteeCheckInterval.toMillis()) {
+                try {
+                    byte[] currentLeaderId = fetchCurrentLeaderId();
 
-                lastLeadershipGuranteeTestResult = Arrays.equals(currentLeaderId, nodeId);
-                if (!lastLeadershipGuranteeTestResult) {
-                    String currentLeaderIdSt = new String(currentLeaderId, "UTF-8");
-                    log.error("We have somehow lost leadership to a node with id '" + currentLeaderIdSt + "'.");
+                    lastLeadershipGuranteeTestResult = Arrays.equals(currentLeaderId, nodeId);
+                    if (!lastLeadershipGuranteeTestResult) {
+                        String currentLeaderIdSt = new String(currentLeaderId, "UTF-8");
+                        log.error("We have somehow lost leadership to a node with id '" + currentLeaderIdSt + "'.");
+                    }
+                } catch (Throwable t) {
+                    lastLeadershipGuranteeTestResult = false;
+                    log.error("Trying to acquire mutex failed.", t);
+                } finally {
+                    lastLeaderhipGuaranteeTestTime = currentTimeMillis();
                 }
-            } catch (Throwable t) {
-                lastLeadershipGuranteeTestResult = false;
-                log.error("Trying to acquire mutex failed.", t);
-            } finally {
-                lastLeaderhipGuaranteeTestTime = System.currentTimeMillis();
             }
-        }
-        return lastLeadershipGuranteeTestResult;
-    }
-
-    private void withStateLock(Runnable runnable) {
-        stateLock.lock();
-        try {
-            runnable.run();
-        } finally {
-            stateLock.unlock();
-        }
-    }
-
-    private <T> T withStateLock(Callable<T> callable) {
-        stateLock.lock();
-        try {
-            return callUnchecked(() -> callable.call());
-        } finally {
-            stateLock.unlock();
-        }
-    }
-
-    private void waitForStateChange() {
-        ExceptionUtils.runUnchecked(() -> stateCondition.await(tickDuration.toMillis(), TimeUnit.MILLISECONDS));
+            if (currentLastLeadershipGuranteeTestResult != lastLeadershipGuranteeTestResult) {
+                stateCondition.signalAll();
+            }
+            return lastLeadershipGuranteeTestResult;
+        });
     }
 
     private void sleep(long ms) {
@@ -357,7 +360,7 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
         });
     }
 
-    protected byte[] fetchCurrentLeaderId() {
+    private byte[] fetchCurrentLeaderId() {
         Collection<String> participantNodes = ExceptionUtils.callUnchecked(() -> mutex.getParticipantNodes());
         if (participantNodes.size() > 0) {
             Iterator<String> iter = participantNodes.iterator();
@@ -382,5 +385,9 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
         } catch (Exception e) {
             throw ExceptionUtils.toUnchecked(e);
         }
+    }
+
+    private long currentTimeMillis() {
+        return clock.millis();
     }
 }

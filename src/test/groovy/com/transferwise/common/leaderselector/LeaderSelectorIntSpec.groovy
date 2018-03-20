@@ -157,8 +157,8 @@ class LeaderSelectorIntSpec extends Specification {
 
     private def createZookeeper() throws IOException {
         ZookeeperConfigurationProperties zookeeperProperties = new ZookeeperConfigurationProperties()
-        zookeeperProperties.setDataFileSystemBind(zookeeperProperties.getDataFileSystemBind().replace("target", "build"));
-        zookeeperProperties.setTxnLogsFileSystemBind(zookeeperProperties.getTxnLogsFileSystemBind().replace("target", "build"));
+        zookeeperProperties.setDataFileSystemBind("/tmp/tw-leader-selector/test-containers/embedded-zk-data");
+        zookeeperProperties.setTxnLogsFileSystemBind("/tmp/tw-leader-selector/test-containers/embedded-zk-txn-logs");
         zookeeperProperties.init();
 
         ZookeeperStatusCheck zookeeperStatusCheck = new ZookeeperStatusCheck(zookeeperProperties);

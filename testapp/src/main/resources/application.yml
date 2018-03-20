@@ -1,7 +1,9 @@
-leader1.enabled: true
+leader1.enabled: false
 leader2.enabled: false
 leader3.enabled: false
-leader4.enabled: false
+leader4.enabled: true
+
+logging.level.com.transferwise.common.leaderselector: DEBUG
 
 ---
 

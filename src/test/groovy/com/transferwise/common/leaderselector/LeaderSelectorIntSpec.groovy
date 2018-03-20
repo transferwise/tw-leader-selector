@@ -32,12 +32,11 @@ class LeaderSelectorIntSpec extends Specification {
     private CuratorFramework curatorFramework
     @Shared
     private ExecutorService executorService
+    @Shared
+    private String zookeeperConnectString;
 
     def setupSpec() {
-        GenericContainer zookeeper
-        String zookeeperConnectString
-        (zookeeper, zookeeperConnectString) = createZookeeper();
-        this.zookeeper = zookeeper;
+        createZookeeper();
         zookeeper.start();
 
         curatorFramework = CuratorFrameworkFactory.builder()
@@ -155,7 +154,39 @@ class LeaderSelectorIntSpec extends Specification {
             1 == 1
     }
 
-    private def createZookeeper() throws IOException {
+    def "when zookeeper is initially down, the leader can start working after connection is established"() {
+        given:
+            curatorFramework.close();
+
+            AtomicInteger startCount = new AtomicInteger()
+            AtomicInteger stopCount = new AtomicInteger()
+            zookeeper.stop()
+            log.info("Zookeeper stopped.")
+            curatorFramework = CuratorFrameworkFactory.builder()
+                .connectString(zookeeperConnectString)
+                .retryPolicy(new RetryForever(5000))
+                .build()
+            curatorFramework.start();
+        when:
+            LeaderSelector leaderSelector1 = new LeaderSelector(curatorFramework, "/tw/leader", executorService, { control ->
+                log.info("Starting leader work.")
+                startCount.incrementAndGet()
+                control.waitUntilShouldStop(Duration.ofMinutes(1))
+                stopCount.incrementAndGet()
+                log.info("Stopped leader work.")
+            })
+            leaderSelector1.start();
+        then:
+            startCount.get() == 0
+        when:
+            zookeeper.start()
+            log.info("Zookeeper started.")
+            TestWaitUtils.waitFor { startCount.get() == 1 }
+        then:
+            1 == 1
+    }
+
+    private void createZookeeper(){
         ZookeeperConfigurationProperties zookeeperProperties = new ZookeeperConfigurationProperties()
         zookeeperProperties.setDataFileSystemBind("/tmp/tw-leader-selector/test-containers/embedded-zk-data");
         zookeeperProperties.setTxnLogsFileSystemBind("/tmp/tw-leader-selector/test-containers/embedded-zk-txn-logs");
@@ -172,7 +203,7 @@ class LeaderSelectorIntSpec extends Specification {
         log.info("Starting zookeeper server. Docker image: {}", zookeeperProperties.getDockerImage());
 
         int mappingPort = zookeeperProperties.getZookeeperPort();
-        GenericContainer zookeeper = new FixedHostPortGenericContainer<FixedHostPortGenericContainer>(zookeeperProperties.getDockerImage())
+        zookeeper = new FixedHostPortGenericContainer<FixedHostPortGenericContainer>(zookeeperProperties.getDockerImage())
             .withLogConsumer(containerLogsConsumer(log))
             .withEnv("ZOOKEEPER_CLIENT_PORT", String.valueOf(mappingPort))
             .withFileSystemBind(zkData, "/var/lib/zookeeper/data", BindMode.READ_WRITE)
@@ -184,8 +215,6 @@ class LeaderSelectorIntSpec extends Specification {
         Integer port = zookeeperProperties.getZookeeperPort();
         String host = zookeeper.getContainerIpAddress();
 
-        String zookeeperConnectString = String.format("%s:%d", host, port);
-
-        return [zookeeper, zookeeperConnectString];
+        zookeeperConnectString = String.format("%s:%d", host, port);
     }
 }

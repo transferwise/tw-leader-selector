@@ -111,19 +111,28 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
         this.connectionStateListener = (client, newState) -> {
             LockUtils.withLock(stateLock, () -> {
                 if (newState == ConnectionState.LOST) {
+                    log.debug(leaderPath + ": disconnected from Zookeeper, stopping current work iteration.");
                     stopWorkIterationRequested = true;
                     if (disconnectedTimestamp == -1) {
                         disconnectedTimestamp = currentTimeMillis();
                     }
                 } else if (newState == ConnectionState.SUSPENDED) {
+                    log.debug(leaderPath + ": disconnected from Zookeeper.");
                     if (disconnectedTimestamp == -1) {
                         disconnectedTimestamp = currentTimeMillis();
                     }
                 } else if (newState == ConnectionState.RECONNECTED) {
                     if (!considerAsConnected()) {
+                        log.debug(leaderPath + ": reconnected to Zookeeper, but too late.");
                         stopWorkIterationRequested = true;
                     }
+                    else{
+                        log.debug(leaderPath + ": reconnected to Zookeeper.");
+                    }
                     disconnectedTimestamp = -1;
+                }
+                else if (newState == ConnectionState.CONNECTED){
+                    log.debug(leaderPath + ": connected to Zookeeper.");
                 }
                 stateCondition.signalAll();
             });
@@ -192,6 +201,7 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
 
     @Override
     public void stop() {
+        log.debug(leaderPath + ": stopping.");
         LockUtils.withLock(stateLock, () -> {
             curatorFramework.getConnectionStateListenable().removeListener(this.connectionStateListener);
             stopRequested = true;
@@ -276,6 +286,7 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
     }
 
     private void doWork() {
+        log.debug(leaderPath + ": a leader will work.");
         leader.work(new Leader.Control() {
             @Override
             public boolean shouldStop() {
@@ -315,13 +326,16 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
             @SuppressWarnings("checkstyle:magicnumber")
             public void workAsyncUntilShouldStop(Runnable startLogic, Runnable stopLogic) {
                 try {
+                    log.debug(leaderPath + ": running leader's start logic.");
                     startLogic.run();
                     waitUntilShouldStop(Duration.ofDays(3650));
                 } finally {
+                    log.debug(leaderPath + ": running leader's stop logic.");
                     stopLogic.run();
                 }
             }
         });
+        log.debug(leaderPath + ": a leader finished working.");
     }
 
     private boolean considerAsConnected() {
@@ -348,6 +362,7 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
                 }
             }
             if (currentLastLeadershipGuranteeTestResult != lastLeadershipGuranteeTestResult) {
+                log.debug(leaderPath + ": leadership guarantee result changed to " + lastLeadershipGuranteeTestResult + ".");
                 stateCondition.signalAll();
             }
             return lastLeadershipGuranteeTestResult;

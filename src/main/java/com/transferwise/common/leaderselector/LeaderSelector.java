@@ -125,13 +125,11 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
                     if (!considerAsConnected()) {
                         log.debug(leaderPath + ": reconnected to Zookeeper, but too late.");
                         stopWorkIterationRequested = true;
-                    }
-                    else{
+                    } else {
                         log.debug(leaderPath + ": reconnected to Zookeeper.");
                     }
                     disconnectedTimestamp = -1;
-                }
-                else if (newState == ConnectionState.CONNECTED){
+                } else if (newState == ConnectionState.CONNECTED) {
                     log.debug(leaderPath + ": connected to Zookeeper.");
                 }
                 stateCondition.signalAll();

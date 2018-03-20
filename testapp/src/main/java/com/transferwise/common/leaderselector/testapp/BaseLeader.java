@@ -45,6 +45,7 @@ public abstract class BaseLeader implements SmartLifecycle {
     }
 
     @Override
+    @SuppressWarnings("checkstyle:magicnumber")
     public void stop(Runnable callback) {
         if (leaderSelector != null) {
             leaderSelector.stop();

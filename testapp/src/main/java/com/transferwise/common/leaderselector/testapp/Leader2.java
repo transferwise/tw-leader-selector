@@ -14,6 +14,7 @@ public class Leader2 extends BaseLeader {
     }
 
     @Override
+    @SuppressWarnings("checkstyle:magicnumber")
     protected Leader getLeader() {
         return control -> {
             for (int i = 0; i < 10; i++) {

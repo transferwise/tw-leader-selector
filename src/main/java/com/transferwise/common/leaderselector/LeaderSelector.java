@@ -349,7 +349,7 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
 
                     lastLeadershipGuranteeTestResult = Arrays.equals(currentLeaderId, nodeId);
                     if (!lastLeadershipGuranteeTestResult) {
-                        String currentLeaderIdSt = new String(currentLeaderId, "UTF-8");
+                        String currentLeaderIdSt = currentLeaderId == null ? null : new String(currentLeaderId, "UTF-8");
                         log.error("We have somehow lost leadership to a node with id '" + currentLeaderIdSt + "'.");
                     }
                 } catch (Throwable t) {

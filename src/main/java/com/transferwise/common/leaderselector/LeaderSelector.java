@@ -307,10 +307,8 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
                         if (disconnectedTimestampTmp != -1) {
                             timeToWait = Math.min(timeToWait, disconnectedTimestampTmp + connectionLossConfirmedDuration.toMillis() - System.currentTimeMillis());
                         }
-                        if (lastLeaderhipGuaranteeTestTime != 0) {
-                            if (leaderGuaranteeCheckInterval.toMillis() > 0) { // We should still avoid cpu burn.
-                                timeToWait = Math.min(timeToWait, lastLeaderhipGuaranteeTestTime + leaderGuaranteeCheckInterval.toMillis() - System.currentTimeMillis());
-                            }
+                        if (lastLeaderhipGuaranteeTestTime != 0 && leaderGuaranteeCheckInterval.toMillis() > 0) { // We should still avoid cpu burn.
+                            timeToWait = Math.min(timeToWait, lastLeaderhipGuaranteeTestTime + leaderGuaranteeCheckInterval.toMillis() - System.currentTimeMillis());
                         }
                         long timeToWaitFinal = timeToWait;
                         ExceptionUtils.runUnchecked(() -> {

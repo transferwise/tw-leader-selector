@@ -221,7 +221,7 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
             }
             LockUtils.withLock(stateLock, () -> {
                 ExceptionUtils.runUnchecked(() -> {
-                    stateCondition.await(start - currentTimeMillis() + waitTime.toMillis(), TimeUnit.MILLISECONDS);
+                    stateCondition.await(start + waitTime.toMillis() - currentTimeMillis(), TimeUnit.MILLISECONDS);
                 });
             });
         }
@@ -298,22 +298,23 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
                     if (shouldStop()) {
                         return true;
                     }
+                    long timeFromStart = System.currentTimeMillis() - start;
+
                     LockUtils.withLock(stateLock, () -> {
-                        long timeToWait = Math.min(waitTime.toMillis(), tickDuration.toMillis()) + start;
+                        long timeToWait = Math.min(waitTime.toMillis() - timeFromStart, tickDuration.toMillis());
+
                         long disconnectedTimestampTmp = disconnectedTimestamp;
                         if (disconnectedTimestampTmp != -1) {
-                            timeToWait = Math.min(timeToWait, disconnectedTimestampTmp + connectionLossConfirmedDuration.toMillis());
+                            timeToWait = Math.min(timeToWait, disconnectedTimestampTmp + connectionLossConfirmedDuration.toMillis() - System.currentTimeMillis());
                         }
                         if (lastLeaderhipGuaranteeTestTime != 0) {
-                            if (leaderGuaranteeCheckInterval.toMillis() <= 0) { // We should still avoid cpu burn.
-                                timeToWait = Math.min(timeToWait, tickDuration.toMillis());
-                            } else {
-                                timeToWait = Math.min(timeToWait, lastLeaderhipGuaranteeTestTime + leaderGuaranteeCheckInterval.toMillis());
+                            if (leaderGuaranteeCheckInterval.toMillis() > 0) { // We should still avoid cpu burn.
+                                timeToWait = Math.min(timeToWait, lastLeaderhipGuaranteeTestTime + leaderGuaranteeCheckInterval.toMillis() - System.currentTimeMillis());
                             }
                         }
                         long timeToWaitFinal = timeToWait;
                         ExceptionUtils.runUnchecked(() -> {
-                            stateCondition.await(timeToWaitFinal - currentTimeMillis(), TimeUnit.MILLISECONDS);
+                            stateCondition.await(timeToWaitFinal, TimeUnit.MILLISECONDS);
                         });
                     });
                 }

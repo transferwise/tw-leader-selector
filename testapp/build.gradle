@@ -16,7 +16,6 @@ dependencies{
 
 	compile 'org.projectlombok:lombok'
 	compile 'org.slf4j:slf4j-api'
-	compile group: 'org.apache.zookeeper', name: 'zookeeper', version: '3.4.11'
 
 	compile project(":")
 }

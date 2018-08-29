@@ -1,18 +1,18 @@
 buildscript {
-	repositories {
-		mavenLocal()
-		maven { url "http://artifacts.transferwise.com/artifactory/libs-release" }
-	}
+    repositories {
+        mavenLocal()
+        maven { url "http://arti.tw.ee/artifactory/libs-release" }
+    }
 
-	dependencies {
-		classpath 'net.researchgate:gradle-release:2.6.0'
-		classpath 'io.spring.gradle:dependency-management-plugin:1.0.1.RELEASE'
-		classpath 'com.transferwise.gradle:common-plugins:1.5'
-	}
+    dependencies {
+        classpath 'net.researchgate:gradle-release:2.6.0'
+        classpath 'io.spring.gradle:dependency-management-plugin:1.0.6.RELEASE'
+        classpath 'com.transferwise.gradle:common-plugins:1.5'
+    }
 }
 
 plugins {
-	id 'org.springframework.boot' version "1.5.10.RELEASE" apply false
+    id 'org.springframework.boot' version "1.5.15.RELEASE" apply false
 }
 
 apply plugin: 'com.transferwise.gradle.lib'
@@ -25,40 +25,41 @@ apply plugin: 'groovy'
 group "com.transferwise.common"
 
 apply plugin: 'io.spring.dependency-management'
+
 dependencyManagement {
-	imports {
-		mavenBom "org.springframework.boot:spring-boot-starter-parent:$springBootVersion"
-	}
+    imports {
+        mavenBom "org.springframework.boot:spring-boot-starter-parent:$springBootVersion"
+    }
 }
 
-dependencies{
-	compile 'org.projectlombok:lombok'
+repositories {
+    mavenLocal()
+    maven {
+        url 'http://arti.tw.ee/artifactory/libs-release'
+    }
+    maven {
+        url 'http://arti.tw.ee/artifactory/libs-snapshot-local'
+    }
+}
 
-	compile 'org.slf4j:slf4j-api'
+dependencies {
+    compile 'org.projectlombok:lombok'
+    compile 'org.slf4j:slf4j-api'
 
-	compile group: 'org.apache.zookeeper', name: 'zookeeper', version: '3.4.11'
+    compile('org.apache.zookeeper:zookeeper:3.5.4-beta')
+    compile('org.apache.curator:curator-framework:4.0.1')
+    compile('org.apache.curator:curator-recipes:4.0.1')
 
-	compile ('org.apache.curator:curator-framework:4.0.0') {
-		exclude module: 'slf4j-api'
-		exclude module: 'log4j'
-		exclude module: 'zookeeper'
-	}
+    compile 'com.google.code.findbugs:annotations:3.0.1'
+    compile 'org.apache.commons:commons-lang3:3.7'
 
-	compile ('org.apache.curator:curator-recipes:4.0.0') {
-		exclude module: 'slf4j-api'
-		exclude module: 'log4j'
-	}
-
-	compile 'com.google.code.findbugs:annotations:3.0.1'
-	compile 'org.apache.commons:commons-lang3:3.7'
-
-	compile 'com.transferwise:common:0.59'
+    compile 'com.transferwise:common:0.59'
 
     testCompile 'org.springframework.boot:spring-boot-starter-test'
     testCompile 'cglib:cglib-nodep:3.2.4'
     testCompile 'org.spockframework:spock-core:1.1-groovy-2.4'
     testCompile 'org.spockframework:spock-spring:1.1-groovy-2.4'
-    testCompile 'com.playtika.testcontainers:embedded-kafka:1.5'
+    testCompile 'com.transferwise.testcontainers:tw-testcontainers-zookeeper:0.1'
     testCompile('com.transferwise:tw-test:0.23')
 }
 
@@ -67,6 +68,6 @@ apply plugin: 'net.researchgate.release'
 afterReleaseBuild.dependsOn publish
 
 release {
-	failOnUnversionedFiles = true
-	tagTemplate = "${project.name}-${project.version}"
+    failOnUnversionedFiles = true
+    tagTemplate = "${project.name}-${project.version}"
 }

@@ -1,9 +1,11 @@
-leader1.enabled: false
+leader1.enabled: true
 leader2.enabled: false
 leader3.enabled: false
-leader4.enabled: true
+leader4.enabled: false
 
 logging.level.com.transferwise.common.leaderselector: DEBUG
+
+zookeeper.connect-string: localhost:2281,localhost:2282
 
 ---
 

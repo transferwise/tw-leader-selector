@@ -1,60 +1,39 @@
 package com.transferwise.common.leaderselector
 
-import com.playtika.test.kafka.checks.ZookeeperStatusCheck
-import com.playtika.test.kafka.properties.ZookeeperConfigurationProperties
 import com.transferwise.test.clock.TestClock
 import com.transferwise.test.utils.TestWaitUtils
 import groovy.util.logging.Slf4j
 import org.apache.curator.framework.CuratorFramework
-import org.apache.curator.framework.CuratorFrameworkFactory
-import org.apache.curator.retry.RetryForever
-import org.testcontainers.containers.BindMode
-import org.testcontainers.containers.FixedHostPortGenericContainer
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 import org.testcontainers.containers.GenericContainer
 import spock.lang.Shared
 import spock.lang.Specification
 
-import java.nio.file.Paths
 import java.time.Duration
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
-import static com.playtika.test.common.utils.ContainerUtils.containerLogsConsumer
-
+@ActiveProfiles(profiles = ["integration"])
+@SpringBootTest(classes = [TestConfiguration])
 @Slf4j
 class LeaderSelectorIntSpec extends Specification {
-    @Shared
+    @Autowired
     private GenericContainer zookeeper
-    @Shared
+    @Autowired
     private CuratorFramework curatorFramework
     @Shared
     private ExecutorService executorService
-    @Shared
-    private String zookeeperConnectString;
 
     def setupSpec() {
-        createZookeeper();
-        zookeeper.start();
-
-        curatorFramework = CuratorFrameworkFactory.builder()
-            .connectString(zookeeperConnectString)
-            .retryPolicy(new RetryForever(5000))
-            .build()
-        curatorFramework.start();
-
-        executorService = Executors.newCachedThreadPool();
+        executorService = Executors.newCachedThreadPool()
     }
 
-    def cleanupSpec() {
-        if (curatorFramework != null) {
-            curatorFramework.close()
-        }
-        if (zookeeper != null) {
-            zookeeper.stop()
-        }
+    def setup(){
+        // Allow Zookeeper to be restarted without needing to reconfigure CuratorFramework port.
+        zookeeper.setPortBindings(["" + zookeeper.getMappedPort(zookeeper.getExposedPorts()[0]) + ":" + zookeeper.getExposedPorts()[0]])
     }
 
     def "code in leader can be executed"() {
@@ -156,17 +135,10 @@ class LeaderSelectorIntSpec extends Specification {
 
     def "when zookeeper is initially down, the leader can start working after connection is established"() {
         given:
-            curatorFramework.close();
-
             AtomicInteger startCount = new AtomicInteger()
             AtomicInteger stopCount = new AtomicInteger()
             zookeeper.stop()
             log.info("Zookeeper stopped.")
-            curatorFramework = CuratorFrameworkFactory.builder()
-                .connectString(zookeeperConnectString)
-                .retryPolicy(new RetryForever(5000))
-                .build()
-            curatorFramework.start();
         when:
             LeaderSelector leaderSelector1 = new LeaderSelector(curatorFramework, "/tw/leader", executorService, { control ->
                 log.info("Starting leader work.")
@@ -184,37 +156,5 @@ class LeaderSelectorIntSpec extends Specification {
             TestWaitUtils.waitFor { startCount.get() == 1 }
         then:
             1 == 1
-    }
-
-    private void createZookeeper(){
-        ZookeeperConfigurationProperties zookeeperProperties = new ZookeeperConfigurationProperties()
-        zookeeperProperties.setDataFileSystemBind("/tmp/tw-leader-selector/test-containers/embedded-zk-data");
-        zookeeperProperties.setTxnLogsFileSystemBind("/tmp/tw-leader-selector/test-containers/embedded-zk-txn-logs");
-        zookeeperProperties.init();
-
-        ZookeeperStatusCheck zookeeperStatusCheck = new ZookeeperStatusCheck(zookeeperProperties);
-
-        String currentTimestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH-mm-ss-nnnnnnnnn"));
-        String zkData = Paths.get(zookeeperProperties.getDataFileSystemBind(), currentTimestamp).toAbsolutePath().toString();
-        log.info("Writing zookeeper data to: {}", zkData);
-        String zkTransactionLogs = Paths.get(zookeeperProperties.getTxnLogsFileSystemBind(), currentTimestamp).toAbsolutePath().toString();
-        log.info("Writing zookeeper transaction logs to: {}", zkTransactionLogs);
-
-        log.info("Starting zookeeper server. Docker image: {}", zookeeperProperties.getDockerImage());
-
-        int mappingPort = zookeeperProperties.getZookeeperPort();
-        zookeeper = new FixedHostPortGenericContainer<FixedHostPortGenericContainer>(zookeeperProperties.getDockerImage())
-            .withLogConsumer(containerLogsConsumer(log))
-            .withEnv("ZOOKEEPER_CLIENT_PORT", String.valueOf(mappingPort))
-            .withFileSystemBind(zkData, "/var/lib/zookeeper/data", BindMode.READ_WRITE)
-            .withFileSystemBind(zkTransactionLogs, "/var/lib/zookeeper/log", BindMode.READ_WRITE)
-            .withExposedPorts(mappingPort)
-            .withFixedExposedPort(mappingPort, mappingPort)
-            .waitingFor(zookeeperStatusCheck);
-
-        Integer port = zookeeperProperties.getZookeeperPort();
-        String host = zookeeper.getContainerIpAddress();
-
-        zookeeperConnectString = String.format("%s:%d", host, port);
     }
 }

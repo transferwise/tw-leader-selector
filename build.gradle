@@ -1,7 +1,7 @@
 buildscript {
     repositories {
         mavenLocal()
-        maven { url "http://arti.tw.ee/artifactory/libs-release" }
+        maven { url "https://arti.tw.ee/artifactory/libs-release" }
     }
 
     dependencies {
@@ -35,10 +35,10 @@ dependencyManagement {
 repositories {
     mavenLocal()
     maven {
-        url 'http://arti.tw.ee/artifactory/libs-release'
+        url 'https://arti.tw.ee/artifactory/libs-release'
     }
     maven {
-        url 'http://arti.tw.ee/artifactory/libs-snapshot-local'
+        url 'https://arti.tw.ee/artifactory/libs-snapshot-local'
     }
 }
 

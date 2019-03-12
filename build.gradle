@@ -47,8 +47,8 @@ dependencies {
     compile 'org.slf4j:slf4j-api'
 
     compile('org.apache.zookeeper:zookeeper:3.5.4-beta')
-    compile('org.apache.curator:curator-framework:4.0.1')
-    compile('org.apache.curator:curator-recipes:4.0.1')
+    compile('org.apache.curator:curator-framework:4.2.0')
+    compile('org.apache.curator:curator-recipes:4.2.0')
 
     compile 'com.google.code.findbugs:annotations:3.0.1'
     compile 'org.apache.commons:commons-lang3:3.7'

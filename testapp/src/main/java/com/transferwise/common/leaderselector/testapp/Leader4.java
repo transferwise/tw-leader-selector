@@ -15,6 +15,7 @@ public class Leader4 extends BaseLeader {
     }
 
     @Override
+    @SuppressWarnings("checkstyle:Indentation")
     protected Leader getLeader() {
         return control -> {
             control.workAsyncUntilShouldStop(() -> {
@@ -22,8 +23,7 @@ public class Leader4 extends BaseLeader {
                 },
                 () -> {
                     throw new RuntimeException("Something went wrong in the stop logic.");
-                }
-            );
+                });
         };
     }
 }

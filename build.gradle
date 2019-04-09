@@ -1,18 +1,17 @@
 buildscript {
     repositories {
-        mavenLocal()
         maven { url "https://arti.tw.ee/artifactory/libs-release" }
+        mavenLocal()
     }
 
     dependencies {
         classpath 'net.researchgate:gradle-release:2.6.0'
-        classpath 'io.spring.gradle:dependency-management-plugin:1.0.6.RELEASE'
-        classpath 'com.transferwise.gradle:common-plugins:1.5'
+        classpath 'com.transferwise.gradle:common-plugins:1.22'
     }
 }
 
 plugins {
-    id 'org.springframework.boot' version "1.5.15.RELEASE" apply false
+    id 'org.springframework.boot' version "2.1.4.RELEASE" apply false
 }
 
 apply plugin: 'com.transferwise.gradle.lib'
@@ -20,7 +19,9 @@ apply plugin: 'com.transferwise.gradle.lib-upload'
 apply plugin: 'com.transferwise.gradle.idea'
 apply plugin: 'com.transferwise.gradle.test'
 apply plugin: 'com.transferwise.gradle.checks'
+apply plugin: "io.spring.dependency-management"
 apply plugin: 'groovy'
+apply plugin: 'java'
 
 group "com.transferwise.common"
 
@@ -33,16 +34,15 @@ dependencyManagement {
 }
 
 repositories {
-    mavenLocal()
     maven {
         url 'https://arti.tw.ee/artifactory/libs-release'
     }
-    maven {
-        url 'https://arti.tw.ee/artifactory/libs-snapshot-local'
-    }
+    mavenLocal()
 }
 
 dependencies {
+    annotationProcessor 'org.projectlombok:lombok'
+
     compile 'org.projectlombok:lombok'
     compile 'org.slf4j:slf4j-api'
 
@@ -55,12 +55,14 @@ dependencies {
 
     compile 'com.transferwise:common:0.59'
 
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
     testCompile 'org.springframework.boot:spring-boot-starter-test'
     testCompile 'cglib:cglib-nodep:3.2.4'
-    testCompile 'org.spockframework:spock-core:1.1-groovy-2.4'
-    testCompile 'org.spockframework:spock-spring:1.1-groovy-2.4'
+    testCompile 'org.spockframework:spock-core:1.2-groovy-2.5'
+    testCompile 'org.spockframework:spock-spring:1.2-groovy-2.5'
     testCompile 'com.transferwise.testcontainers:tw-testcontainers-zookeeper:0.1'
-    testCompile('com.transferwise:tw-test:0.23')
+    testCompile('com.transferwise:tw-test2:0.3')
 }
 
 apply plugin: 'net.researchgate.release'

@@ -31,7 +31,7 @@ class LeaderSelectorIntSpec extends Specification {
         executorService = Executors.newCachedThreadPool()
     }
 
-    def setup(){
+    def setup() {
         // Allow Zookeeper to be restarted without needing to reconfigure CuratorFramework port.
         zookeeper.setPortBindings(["" + zookeeper.getMappedPort(zookeeper.getExposedPorts()[0]) + ":" + zookeeper.getExposedPorts()[0]])
     }
@@ -156,5 +156,43 @@ class LeaderSelectorIntSpec extends Specification {
             TestWaitUtils.waitFor { startCount.get() == 1 }
         then:
             1 == 1
+        when: 'cleanup'
+            leaderSelector1.stop()
+        then:
+            TestWaitUtils.waitFor { stopCount.get() == 1 }
+    }
+
+    // Useful for tests and tricky cases
+    def "leader selector can be restarted"() {
+        given:
+            def startsCount = new AtomicInteger()
+            def stopsCount = new AtomicInteger()
+
+            LeaderSelector leaderSelector = new LeaderSelector(curatorFramework, "/tw/leader", executorService,
+                { control ->
+                    startsCount.incrementAndGet()
+                    control.waitUntilShouldStop(Duration.ofSeconds(10))
+                    stopsCount.incrementAndGet()
+                })
+        when:
+            leaderSelector.start()
+            TestWaitUtils.waitFor { startsCount.get() == 1 }
+        and:
+            leaderSelector.stop()
+            TestWaitUtils.waitFor { leaderSelector.hasStopped() }
+        then:
+            stopsCount.get() == 1
+            startsCount.get() == 1
+        when:
+            leaderSelector.start()
+            TestWaitUtils.waitFor { startsCount.get() == 2 }
+        then:
+            !leaderSelector.hasStopped()
+            stopsCount.get() == 1
+        when:
+            leaderSelector.stop()
+            TestWaitUtils.waitFor { leaderSelector.hasStopped() }
+        then:
+            stopsCount.get() == 2
     }
 }

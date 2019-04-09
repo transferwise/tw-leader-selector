@@ -169,6 +169,8 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
 
     @Override
     public void start() {
+        stopRequested = false;
+
         curatorFramework.getConnectionStateListenable().addListener(this.connectionStateListener, executorService);
 
         executorService.submit(() -> {

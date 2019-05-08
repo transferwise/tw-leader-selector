@@ -14,19 +14,21 @@ import org.springframework.core.env.Environment;
 @Slf4j
 @EnableAutoConfiguration
 public class TestConfiguration {
+    private static final int NETWORK_TIMEOUT = 5000;
+
     @Autowired
     private Environment environment;
 
     @Bean(destroyMethod = "close")
     public CuratorFramework curatorFramework() {
-        String connectString = "localhost:" + environment.getProperty("tw.testcontainers.zookeeper.mappedPort");
+        String connectString = environment.getProperty("zookeeper.connect-string");
 
         CuratorFramework curatorFramework = CuratorFrameworkFactory.builder()
-            .connectionTimeoutMs(5000)
-            .sessionTimeoutMs(5000)
+            .connectionTimeoutMs(NETWORK_TIMEOUT)
+            .sessionTimeoutMs(NETWORK_TIMEOUT)
             .canBeReadOnly(false)
             .connectString(connectString)
-            .retryPolicy(new RetryForever(5000))
+            .retryPolicy(new RetryForever(NETWORK_TIMEOUT))
             .build();
 
         curatorFramework.start();

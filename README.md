@@ -33,7 +33,7 @@ leaderSelector = new LeaderSelector("leader2", curatorFramework,
 					return;
 				}
 				log.info("Doing work for chunk " + i + ".");
-				ExceptionUtils.runUnchecked(() -> Thread.sleep(1000));
+				ExceptionUtils.doUnchecked(() -> Thread.sleep(1000));
 			}
 		});
 ```

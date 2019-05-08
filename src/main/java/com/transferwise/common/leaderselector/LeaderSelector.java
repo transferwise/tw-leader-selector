@@ -1,7 +1,7 @@
 package com.transferwise.common.leaderselector;
 
-import com.transferwise.common.concurrency.LockUtils;
-import com.transferwise.common.utils.ExceptionUtils;
+import com.transferwise.common.baseutils.ExceptionUtils;
+import com.transferwise.common.baseutils.concurrency.LockUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
@@ -21,8 +21,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-import static com.transferwise.common.utils.ExceptionUtils.runUnchecked;
 
 @Slf4j
 public class LeaderSelector implements LeaderSelectorLifecycle {
@@ -222,8 +220,8 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
                 return true;
             }
             LockUtils.withLock(stateLock, () -> {
-                ExceptionUtils.runUnchecked(() -> {
-                    stateCondition.await(start + waitTime.toMillis() - currentTimeMillis(), TimeUnit.MILLISECONDS);
+                ExceptionUtils.doUnchecked(() -> {
+                    boolean ignored = stateCondition.await(start + waitTime.toMillis() - currentTimeMillis(), TimeUnit.MILLISECONDS);
                 });
             });
         }
@@ -313,8 +311,8 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
                             timeToWait = Math.min(timeToWait, lastLeaderhipGuaranteeTestTime + leaderGuaranteeCheckInterval.toMillis() - System.currentTimeMillis());
                         }
                         long timeToWaitFinal = timeToWait;
-                        ExceptionUtils.runUnchecked(() -> {
-                            stateCondition.await(timeToWaitFinal, TimeUnit.MILLISECONDS);
+                        ExceptionUtils.doUnchecked(() -> {
+                            boolean ignored = stateCondition.await(timeToWaitFinal, TimeUnit.MILLISECONDS);
                         });
                     });
                 }
@@ -369,13 +367,13 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
     }
 
     private void sleep(long ms) {
-        runUnchecked(() -> {
+        ExceptionUtils.doUnchecked(() -> {
             Thread.sleep(ms);
         });
     }
 
     private byte[] fetchCurrentLeaderId() {
-        Collection<String> participantNodes = ExceptionUtils.callUnchecked(() -> mutex.getParticipantNodes());
+        Collection<String> participantNodes = ExceptionUtils.doUnchecked(() -> mutex.getParticipantNodes());
         if (participantNodes.size() > 0) {
             Iterator<String> iter = participantNodes.iterator();
             while (iter.hasNext()) {

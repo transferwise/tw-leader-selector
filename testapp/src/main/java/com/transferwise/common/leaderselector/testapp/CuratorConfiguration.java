@@ -1,6 +1,6 @@
 package com.transferwise.common.leaderselector.testapp;
 
-import com.transferwise.common.concurrency.CountingThreadFactory;
+import com.transferwise.common.baseutils.concurrency.CountingThreadFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;

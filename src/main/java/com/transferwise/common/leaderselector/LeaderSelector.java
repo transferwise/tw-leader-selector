@@ -14,7 +14,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;

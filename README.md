@@ -1,5 +1,8 @@
 # tw-leader-selector
 
+![Apache 2](https://img.shields.io/hexpm/l/plug.svg)
+![Java 1.8](https://img.shields.io/badge/Java-1.8-blue.svg)
+
 Provides a proper leader selector recipe with following benefits compared to Curator's recipe.
 
 - Not based on Thread interruptions (very bad and old practice), so the control over the selector is completely graceful.
@@ -39,3 +42,18 @@ leaderSelector = new LeaderSelector("leader2", curatorFramework,
 ```
 
 And the state has some more convenient methods for asynchronous work, `waitUntilStop()`
+
+## License
+Copyright 2019 TransferWise Ltd.
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

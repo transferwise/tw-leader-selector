@@ -20,6 +20,7 @@ public interface Leader {
         /**
          * Waits until the leadership is going to be taken away or waitTime expires.
          */
+        @SuppressWarnings("UnusedReturnValue")
         boolean waitUntilShouldStop(Duration waitTime);
 
         void workAsyncUntilShouldStop(Runnable startLogic, Runnable stopLogic);

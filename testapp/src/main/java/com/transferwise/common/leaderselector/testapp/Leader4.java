@@ -17,13 +17,11 @@ public class Leader4 extends BaseLeader {
     @Override
     @SuppressWarnings("checkstyle:Indentation")
     protected Leader getLeader() {
-        return control -> {
-            control.workAsyncUntilShouldStop(() -> {
-                    throw new RuntimeException("Something went wrong in the start logic.");
-                },
-                () -> {
-                    throw new RuntimeException("Something went wrong in the stop logic.");
-                });
-        };
+        return control -> control.workAsyncUntilShouldStop(() -> {
+                throw new RuntimeException("Something went wrong in the start logic.");
+            },
+            () -> {
+                throw new RuntimeException("Something went wrong in the stop logic.");
+            });
     }
 }

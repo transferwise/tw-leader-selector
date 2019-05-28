@@ -106,33 +106,31 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
             }
         };
 
-        this.connectionStateListener = (client, newState) -> {
-            LockUtils.withLock(stateLock, () -> {
-                if (newState == ConnectionState.LOST) {
-                    log.debug(leaderPath + ": disconnected from Zookeeper, stopping current work iteration.");
-                    stopWorkIterationRequested = true;
-                    if (disconnectedTimestamp == -1) {
-                        disconnectedTimestamp = currentTimeMillis();
-                    }
-                } else if (newState == ConnectionState.SUSPENDED) {
-                    log.debug(leaderPath + ": disconnected from Zookeeper.");
-                    if (disconnectedTimestamp == -1) {
-                        disconnectedTimestamp = currentTimeMillis();
-                    }
-                } else if (newState == ConnectionState.RECONNECTED) {
-                    if (!considerAsConnected()) {
-                        log.debug(leaderPath + ": reconnected to Zookeeper, but too late.");
-                        stopWorkIterationRequested = true;
-                    } else {
-                        log.debug(leaderPath + ": reconnected to Zookeeper.");
-                    }
-                    disconnectedTimestamp = -1;
-                } else if (newState == ConnectionState.CONNECTED) {
-                    log.debug(leaderPath + ": connected to Zookeeper.");
+        this.connectionStateListener = (client, newState) -> LockUtils.withLock(stateLock, () -> {
+            if (newState == ConnectionState.LOST) {
+                log.debug(leaderPath + ": disconnected from Zookeeper, stopping current work iteration.");
+                stopWorkIterationRequested = true;
+                if (disconnectedTimestamp == -1) {
+                    disconnectedTimestamp = currentTimeMillis();
                 }
-                stateCondition.signalAll();
-            });
-        };
+            } else if (newState == ConnectionState.SUSPENDED) {
+                log.debug(leaderPath + ": disconnected from Zookeeper.");
+                if (disconnectedTimestamp == -1) {
+                    disconnectedTimestamp = currentTimeMillis();
+                }
+            } else if (newState == ConnectionState.RECONNECTED) {
+                if (!considerAsConnected()) {
+                    log.debug(leaderPath + ": reconnected to Zookeeper, but too late.");
+                    stopWorkIterationRequested = true;
+                } else {
+                    log.debug(leaderPath + ": reconnected to Zookeeper.");
+                }
+                disconnectedTimestamp = -1;
+            } else if (newState == ConnectionState.CONNECTED) {
+                log.debug(leaderPath + ": connected to Zookeeper.");
+            }
+            stateCondition.signalAll();
+        });
     }
 
     public LeaderSelector setTickDuration(Duration tickDuration) {
@@ -219,11 +217,9 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
             if (hasStopped()) {
                 return true;
             }
-            LockUtils.withLock(stateLock, () -> {
-                ExceptionUtils.doUnchecked(() -> {
-                    boolean ignored = stateCondition.await(start + waitTime.toMillis() - currentTimeMillis(), TimeUnit.MILLISECONDS);
-                });
-            });
+            LockUtils.withLock(stateLock, () -> ExceptionUtils.doUnchecked(() -> {
+                boolean ignored = stateCondition.await(start + waitTime.toMillis() - currentTimeMillis(), TimeUnit.MILLISECONDS);
+            }));
         }
         return hasStopped();
     }
@@ -348,7 +344,7 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
 
                     lastLeadershipGuranteeTestResult = Arrays.equals(currentLeaderId, nodeId);
                     if (!lastLeadershipGuranteeTestResult) {
-                        String currentLeaderIdSt = currentLeaderId == null ? null : new String(currentLeaderId, "UTF-8");
+                        String currentLeaderIdSt = currentLeaderId == null ? null : new String(currentLeaderId, StandardCharsets.UTF_8);
                         log.error("We have somehow lost leadership to a node with id '" + currentLeaderIdSt + "'.");
                     }
                 } catch (Throwable t) {
@@ -367,17 +363,13 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
     }
 
     private void sleep(long ms) {
-        ExceptionUtils.doUnchecked(() -> {
-            Thread.sleep(ms);
-        });
+        ExceptionUtils.doUnchecked(() -> Thread.sleep(ms));
     }
 
     private byte[] fetchCurrentLeaderId() {
         Collection<String> participantNodes = ExceptionUtils.doUnchecked(() -> mutex.getParticipantNodes());
         if (participantNodes.size() > 0) {
-            Iterator<String> iter = participantNodes.iterator();
-            while (iter.hasNext()) {
-                String path = iter.next();
+            for (String path : participantNodes) {
                 byte[] id = idForPath(path);
 
                 if (id != null) {

@@ -126,21 +126,21 @@ publishing {
     }
 
     repositories {
-        /*
         maven {
             url "https://arti.tw.ee/artifactory/libs-${project.version.endsWith('-SNAPSHOT') ? 'snapshot' : 'release'}-local"
             credentials {
                 username = artifactoryUser
                 password = artifactoryPassword
             }
-        }*/
+        }
+        /*
         maven {
             url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
             credentials {
                 username sonatypeUsername
                 password sonatypePassword
             }
-        }
+        }*/
     }
 }
 
@@ -160,7 +160,7 @@ spotbugs {
 task addTag(type: Exec) {
     commandLine 'git', 'tag', "$project.name-$project.version", '-m', "$project.name-$project.version"
 }
-
 task pushTag(type: Exec) {
     commandLine 'git', 'push', 'origin', "$project.name-$project.version"
 }
+pushTag.dependsOn addTag

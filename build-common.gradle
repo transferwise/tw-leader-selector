@@ -1,5 +1,4 @@
 apply plugin: 'java-library'
-apply plugin: 'net.researchgate.release'
 apply plugin: 'maven-publish'
 apply plugin: 'groovy'
 apply plugin: 'signing'
@@ -47,8 +46,8 @@ repositories {
 
 dependencyManagement {
     imports {
-        mavenBom "org.springframework.boot:spring-boot-starter-parent:2.1.5.RELEASE"
-        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Greenwich.SR1"
+        mavenBom "org.springframework.boot:spring-boot-starter-parent:2.1.8.RELEASE"
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Greenwich.SR3"
     }
 }
 
@@ -57,13 +56,6 @@ configurations {
         exclude module: 'slf4j-log4j12'
     }
 }
-
-release {
-    tagTemplate = '$name-$version'
-    failOnUnversionedFiles = true
-}
-
-afterReleaseBuild.dependsOn publish
 
 ext.artifactoryUser = project.hasProperty("artifactoryUser") ? project.artifactoryUser : System.env.ARTIFACTORY_USER as String
 ext.artifactoryPassword = project.hasProperty("artifactoryPassword") ? project.artifactoryPassword : System.env.ARTIFACTORY_PASSWORD as String
@@ -163,4 +155,12 @@ test {
 spotbugs {
     sourceSets = [sourceSets.main]
     effort = "max"
+}
+
+task addTag(type: Exec) {
+    commandLine 'git', 'tag', "$project.name-$project.version", '-m', "$project.name-$project.version"
+}
+
+task pushTag(type: Exec) {
+    commandLine 'git', 'push', 'origin', "$project.name-$project.version"
 }

@@ -23,12 +23,13 @@ import static org.awaitility.Awaitility.await
 @SpringBootTest(classes = [TestConfiguration])
 @ContextConfiguration(initializers = [ZookeeperContainerInitializer.class])
 @Slf4j
-@SuppressWarnings("GrDeprecatedAPIUsage")
-class LeaderSelectorIntSpec extends Specification {
+class LeaderSelectorV2IntSpec extends Specification {
     @Autowired
     private Environment environment
     @Autowired
     private CuratorFramework curatorFramework
+    @Autowired
+    private LostCountingConnectionStateListener lostCountingConnectionStateListener
     @Shared
     private ExecutorService executorService
 
@@ -36,20 +37,32 @@ class LeaderSelectorIntSpec extends Specification {
         executorService = Executors.newCachedThreadPool()
     }
 
+    def cleanup() {
+        TestClock.reset()
+    }
+
+    private def builder() {
+        SharedReentrantLock lock = new SharedReentrantLock.Builder()
+            .setCuratorFramework(curatorFramework).setLostCountingConnectionStateListener(lostCountingConnectionStateListener)
+            .setLockPath("/tw/leader").build()
+        return new LeaderSelectorV2.Builder().setLock(lock).setExecutorService(executorService)
+    }
+
     def "code in leader can be executed"() {
         given:
             AtomicInteger workCount = new AtomicInteger()
         when:
-            LeaderSelector leaderSelector1 = new LeaderSelector(curatorFramework, "/tw/leader", executorService, { control ->
+            LeaderSelectorV2 leaderSelector1 = builder().setLeader({ control ->
                 workCount.incrementAndGet()
                 log.info("Doing some work in leader1.")
-            })
+            }).build()
+
             leaderSelector1.start()
 
-            LeaderSelector leaderSelector2 = new LeaderSelector(curatorFramework, "/tw/leader", executorService, { control ->
+            LeaderSelectorV2 leaderSelector2 = builder().setLeader({ control ->
                 workCount.incrementAndGet()
                 log.info("Doing some work in leader2.")
-            })
+            }).build()
             leaderSelector2.start()
 
             await().until() { workCount.get() > 1 }
@@ -70,9 +83,9 @@ class LeaderSelectorIntSpec extends Specification {
             AtomicInteger concurrentExecutions = new AtomicInteger()
             boolean concurrencyControlFailed = false
 
-            List<LeaderSelector> leaderSelectors = []
+            List<LeaderSelectorV2> leaderSelectors = []
             for (int i = 0; i < N; i++) {
-                leaderSelectors.add(new LeaderSelector(curatorFramework, "/tw/leader", executorService, { control ->
+                leaderSelectors.add(builder().setLeader({ control ->
                     int concurrency = concurrentExecutions.incrementAndGet()
                     if (concurrency > 1) {
                         concurrencyControlFailed = true
@@ -80,12 +93,13 @@ class LeaderSelectorIntSpec extends Specification {
                     Thread.sleep(1)
                     executionsCount.incrementAndGet()
                     concurrentExecutions.decrementAndGet()
-                }).setMinimumWorkTime(Duration.ofMillis(0)))
+                }).setMinimumWorkTime(Duration.ofMillis(0)).build())
             }
         when:
             leaderSelectors.forEach { it.start() }
             await().until() { executionsCount.get() > M }
             leaderSelectors.forEach { it.stop() }
+            leaderSelectors.forEach { it.waitUntilStopped(Duration.ofSeconds(10)) }
         then:
             !concurrencyControlFailed
     }
@@ -94,16 +108,16 @@ class LeaderSelectorIntSpec extends Specification {
         given:
             AtomicInteger startCount = new AtomicInteger()
             AtomicInteger stopCount = new AtomicInteger()
-            TestClock testClock = new TestClock()
+            TestClock testClock = TestClock.createAndRegister()
         when:
-            LeaderSelector leaderSelector1 = new LeaderSelector(curatorFramework, "/tw/leader", executorService, { control ->
+            def leaderSelector = builder().setLeader({ control ->
                 log.info("Starting leader work.")
                 startCount.incrementAndGet()
                 control.waitUntilShouldStop(Duration.ofMinutes(1))
                 stopCount.incrementAndGet()
                 log.info("Stopped leader work.")
-            }).setClock(testClock)
-            leaderSelector1.start()
+            }).build()
+            leaderSelector.start()
             await().until() { startCount.get() == 1 }
         then:
             stopCount.get() == 0
@@ -125,8 +139,9 @@ class LeaderSelectorIntSpec extends Specification {
         then:
             stopCount.get() == 1
         when:
-            leaderSelector1.stop()
+            leaderSelector.stop()
             await().until() { stopCount.get() == 2 }
+            leaderSelector.waitUntilStopped(Duration.ofSeconds(10))
         then:
             1 == 1
     }
@@ -138,14 +153,14 @@ class LeaderSelectorIntSpec extends Specification {
             zookeeperInstance.stop()
             log.info("Zookeeper stopped.")
         when:
-            LeaderSelector leaderSelector1 = new LeaderSelector(curatorFramework, "/tw/leader", executorService, { control ->
+            def leaderSelector = builder().setLeader({ control ->
                 log.info("Starting leader work.")
                 startCount.incrementAndGet()
                 control.waitUntilShouldStop(Duration.ofMinutes(1))
                 stopCount.incrementAndGet()
                 log.info("Stopped leader work.")
-            })
-            leaderSelector1.start()
+            }).build()
+            leaderSelector.start()
         then:
             startCount.get() == 0
         when:
@@ -155,7 +170,8 @@ class LeaderSelectorIntSpec extends Specification {
         then:
             1 == 1
         when: 'cleanup'
-            leaderSelector1.stop()
+            leaderSelector.stop()
+            leaderSelector.waitUntilStopped(Duration.ofSeconds(10))
         then:
             await().until() { stopCount.get() == 1 }
     }
@@ -166,12 +182,12 @@ class LeaderSelectorIntSpec extends Specification {
             def startsCount = new AtomicInteger()
             def stopsCount = new AtomicInteger()
 
-            LeaderSelector leaderSelector = new LeaderSelector(curatorFramework, "/tw/leader", executorService,
+            def leaderSelector = builder().setLeader(
                 { control ->
                     startsCount.incrementAndGet()
                     control.waitUntilShouldStop(Duration.ofSeconds(10))
                     stopsCount.incrementAndGet()
-                })
+                }).build()
         when:
             leaderSelector.start()
             await().until() { startsCount.get() == 1 }
@@ -189,8 +205,35 @@ class LeaderSelectorIntSpec extends Specification {
             stopsCount.get() == 1
         when:
             leaderSelector.stop()
-            await().until() { leaderSelector.hasStopped() }
+            await().until() { leaderSelector.waitUntilStopped(Duration.ofSeconds(10)) }
         then:
             stopsCount.get() == 2
+    }
+
+    def "when zookeeper is initially down, we don't wait forever to acquire a lock"() {
+        given:
+            zookeeperInstance.stop()
+            log.info("Zookeeper stopped.")
+        when:
+            def lock = new SharedReentrantLock.Builder().setCuratorFramework(curatorFramework)
+                .setLostCountingConnectionStateListener(lostCountingConnectionStateListener)
+                .setLockPath("/tw/leader")
+                .setServerSideCheck(true).build()
+
+            boolean acquired = lock.acquire(Duration.ofSeconds(5))
+        then:
+            !acquired
+        when:
+            zookeeperInstance.start()
+            log.info("Zookeeper started.")
+            acquired = lock.acquire(Duration.ofSeconds(55))
+        then:
+            acquired
+            lock.isOwned(Duration.ofSeconds(5))
+        when:
+            lock.release()
+        then:
+            !lock.isOwned(Duration.ofSeconds(5))
+            !lock.considerAsOwned()
     }
 }

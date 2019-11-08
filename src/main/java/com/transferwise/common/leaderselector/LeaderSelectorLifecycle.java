@@ -9,6 +9,7 @@ public interface LeaderSelectorLifecycle {
 
     boolean hasStopped();
 
+    @SuppressWarnings("UnusedReturnValue")
     boolean waitUntilStopped(Duration waitTime);
 
     boolean isWorking();

@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @ConditionalOnProperty(value = "leader1.enabled", matchIfMissing = true)
 @Component
-/**
- * One node takes leadership and works for 10 seconds.
+/*
+  One node takes leadership and works for 10 seconds.
  */
 public class Leader1 extends BaseLeader {
     @Override

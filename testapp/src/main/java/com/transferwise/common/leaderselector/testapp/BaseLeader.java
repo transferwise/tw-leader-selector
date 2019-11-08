@@ -18,7 +18,7 @@ import java.util.concurrent.Executors;
 @Component
 @Slf4j
 public abstract class BaseLeader implements SmartLifecycle {
-    protected LeaderSelectorLifecycle leaderSelector;
+    private LeaderSelectorLifecycle leaderSelector;
 
     @Autowired
     private CuratorFramework curatorFramework;
@@ -28,10 +28,12 @@ public abstract class BaseLeader implements SmartLifecycle {
 
     @PostConstruct
     public void init() {
-        if (!env.getProperty(getLeaderId() + ".enabled").equalsIgnoreCase("false")) {
+        if (!"false".equalsIgnoreCase(env.getProperty(getLeaderId() + ".enabled"))) {
             ExecutorService executorService = Executors.newCachedThreadPool();
+            //noinspection deprecation
             leaderSelector = new LeaderSelector(curatorFramework,
-                "/tw/leaderSelector/testApp/" + getLeaderId(), executorService, getLeader());
+                                                "/tw/leaderSelector/testApp/" + getLeaderId(), executorService,
+                                                getLeader());
         }
     }
 

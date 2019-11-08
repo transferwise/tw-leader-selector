@@ -12,7 +12,7 @@ public interface Leader {
 
     interface Control {
         /**
-         * Returns true if the leadership may have been lost, or the leaderselector has been asked to stop. In all those cases
+         * Returns true if the leadership may have been lost, or the leader selector has been asked to stop. In all those cases
          * the work should be stopped and the method `work()` exited.
          */
         boolean shouldStop();

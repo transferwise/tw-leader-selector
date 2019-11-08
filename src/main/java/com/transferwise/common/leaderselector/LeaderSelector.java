@@ -22,21 +22,23 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
+// Use LeaderSelectorV2 instead.
+@Deprecated
 public class LeaderSelector implements LeaderSelectorLifecycle {
-    private InterProcessMutex mutex;
-    private Leader leader;
-    private CuratorFramework curatorFramework;
-    private ExecutorService executorService;
+    private final InterProcessMutex mutex;
+    private final Leader leader;
+    private final CuratorFramework curatorFramework;
+    private final ExecutorService executorService;
     private Clock clock;
 
     /**
      * The node path in Zookeeper, where we track the leadership.
      */
-    private String leaderPath;
+    private final String leaderPath;
     /**
      * Unique nodeId we will save into Zookeeper's leader-node, so we are able to later verify by other means if we still are a leader.
      */
-    private byte[] nodeId;
+    private final byte[] nodeId;
     /**
      * The minimum interval between taking leaderships. It is non-zero by default, so novice users can not overload
      * the Zookeeper cluster. It is very rarely needed to be changed.
@@ -72,18 +74,18 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
      */
     private int workIterationsUntilStop = -1;
 
-    private ConnectionStateListener connectionStateListener;
+    private final ConnectionStateListener connectionStateListener;
 
     private volatile boolean stopRequested;
     private volatile boolean working;
     private volatile long disconnectedTimestamp = -1;
     private volatile boolean stopWorkIterationRequested = false;
 
-    private Lock stateLock;
-    private Condition stateCondition;
+    private final Lock stateLock;
+    private final Condition stateCondition;
 
-    private volatile long lastLeaderhipGuaranteeTestTime = 0;
-    private volatile boolean lastLeadershipGuranteeTestResult;
+    private volatile long lastLeadershipGuaranteeTestTime = 0;
+    private volatile boolean lastLeadershipGuaranteeTestResult;
 
     private long workIterationsDone = 0;
     private long lastWorkTryingTimeMs = -1;
@@ -217,7 +219,8 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
                 return true;
             }
             LockUtils.withLock(stateLock, () -> ExceptionUtils.doUnchecked(() -> {
-                boolean ignored = stateCondition.await(start + waitTime.toMillis() - currentTimeMillis(), TimeUnit.MILLISECONDS);
+                boolean ignored = stateCondition
+                    .await(start + waitTime.toMillis() - currentTimeMillis(), TimeUnit.MILLISECONDS);
             }));
         }
         return hasStopped();
@@ -242,7 +245,7 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
                     sleep(tickDuration.toMillis());
                 }
             }
-            boolean doWork = lockAcquired && LockUtils.withLock(stateLock, () -> {
+            boolean doWork = LockUtils.withLock(stateLock, () -> {
                 if (stopRequested || !considerAsConnected()) {
                     return false;
                 }
@@ -251,8 +254,8 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
                 return true;
             });
             if (doWork) {
-                lastLeaderhipGuaranteeTestTime = currentTimeMillis();
-                lastLeadershipGuranteeTestResult = true;
+                lastLeadershipGuaranteeTestTime = currentTimeMillis();
+                lastLeadershipGuaranteeTestResult = true;
                 workIterationsDone++;
 
                 try {
@@ -300,10 +303,14 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
 
                         long disconnectedTimestampTmp = disconnectedTimestamp;
                         if (disconnectedTimestampTmp != -1) {
-                            timeToWait = Math.min(timeToWait, disconnectedTimestampTmp + connectionLossConfirmedDuration.toMillis() - System.currentTimeMillis());
+                            timeToWait = Math.min(timeToWait, disconnectedTimestampTmp + connectionLossConfirmedDuration
+                                .toMillis() - System.currentTimeMillis());
                         }
-                        if (lastLeaderhipGuaranteeTestTime != 0 && leaderGuaranteeCheckInterval.toMillis() > 0) { // We should still avoid cpu burn.
-                            timeToWait = Math.min(timeToWait, lastLeaderhipGuaranteeTestTime + leaderGuaranteeCheckInterval.toMillis() - System.currentTimeMillis());
+                        if (lastLeadershipGuaranteeTestTime != 0 && leaderGuaranteeCheckInterval
+                            .toMillis() > 0) { // We should still avoid cpu burn.
+                            timeToWait = Math.min(timeToWait,
+                                                  lastLeadershipGuaranteeTestTime + leaderGuaranteeCheckInterval
+                                                      .toMillis() - System.currentTimeMillis());
                         }
                         long timeToWaitFinal = timeToWait;
                         ExceptionUtils.doUnchecked(() -> {
@@ -331,33 +338,37 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
     }
 
     private boolean considerAsConnected() {
-        return disconnectedTimestamp == -1 || disconnectedTimestamp + connectionLossConfirmedDuration.toMillis() > currentTimeMillis();
+        return disconnectedTimestamp == -1 || disconnectedTimestamp + connectionLossConfirmedDuration
+            .toMillis() > currentTimeMillis();
     }
 
     private boolean isNodeStillTheLeader() {
         return LockUtils.withLock(stateLock, () -> {
-            boolean currentLastLeadershipGuranteeTestResult = lastLeadershipGuranteeTestResult;
-            if (lastLeaderhipGuaranteeTestTime == 0 || currentTimeMillis() > lastLeaderhipGuaranteeTestTime + leaderGuaranteeCheckInterval.toMillis()) {
+            boolean currentLastLeadershipGuaranteeTestResult = lastLeadershipGuaranteeTestResult;
+            if (lastLeadershipGuaranteeTestTime == 0 || currentTimeMillis() > lastLeadershipGuaranteeTestTime + leaderGuaranteeCheckInterval
+                .toMillis()) {
                 try {
                     byte[] currentLeaderId = fetchCurrentLeaderId();
 
-                    lastLeadershipGuranteeTestResult = Arrays.equals(currentLeaderId, nodeId);
-                    if (!lastLeadershipGuranteeTestResult) {
-                        String currentLeaderIdSt = currentLeaderId == null ? null : new String(currentLeaderId, StandardCharsets.UTF_8);
+                    lastLeadershipGuaranteeTestResult = Arrays.equals(currentLeaderId, nodeId);
+                    if (!lastLeadershipGuaranteeTestResult) {
+                        String currentLeaderIdSt = currentLeaderId == null ? null : new String(currentLeaderId,
+                                                                                               StandardCharsets.UTF_8);
                         log.error("We have somehow lost leadership to a node with id '" + currentLeaderIdSt + "'.");
                     }
                 } catch (Throwable t) {
-                    lastLeadershipGuranteeTestResult = false;
+                    lastLeadershipGuaranteeTestResult = false;
                     log.error("Trying to acquire mutex failed.", t);
                 } finally {
-                    lastLeaderhipGuaranteeTestTime = currentTimeMillis();
+                    lastLeadershipGuaranteeTestTime = currentTimeMillis();
                 }
             }
-            if (currentLastLeadershipGuranteeTestResult != lastLeadershipGuranteeTestResult) {
-                log.debug(leaderPath + ": leadership guarantee result changed to " + lastLeadershipGuranteeTestResult + ".");
+            if (currentLastLeadershipGuaranteeTestResult != lastLeadershipGuaranteeTestResult) {
+                log.debug(
+                    leaderPath + ": leadership guarantee result changed to " + lastLeadershipGuaranteeTestResult + ".");
                 stateCondition.signalAll();
             }
-            return lastLeadershipGuranteeTestResult;
+            return lastLeadershipGuaranteeTestResult;
         });
     }
 
@@ -366,7 +377,7 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
     }
 
     private byte[] fetchCurrentLeaderId() {
-        Collection<String> participantNodes = ExceptionUtils.doUnchecked(() -> mutex.getParticipantNodes());
+        Collection<String> participantNodes = ExceptionUtils.doUnchecked(mutex::getParticipantNodes);
         if (participantNodes.size() > 0) {
             for (String path : participantNodes) {
                 byte[] id = idForPath(path);

@@ -21,6 +21,7 @@ public class LeaderSelectorV2 implements LeaderSelectorLifecycle {
     private final Builder config;
 
     private volatile boolean stopRequested;
+    private volatile boolean yieldRequested;
     private volatile boolean working;
     private volatile boolean stopWorkIterationRequested = false;
 
@@ -158,6 +159,9 @@ public class LeaderSelectorV2 implements LeaderSelectorLifecycle {
                     if (shouldStop()) {
                         return true;
                     }
+                    if (yieldRequested) {
+                        return true;
+                    }
                     long timeFromStart = System.currentTimeMillis() - start;
                     LockUtils.withLock(stateLock, () -> {
                         long timeToWait = Math.min(waitTime.toMillis() - timeFromStart, config.tickDuration.toMillis());
@@ -178,8 +182,20 @@ public class LeaderSelectorV2 implements LeaderSelectorLifecycle {
                     waitUntilShouldStop(Duration.ofDays(3650));
                 } finally {
                     log.debug(config.lock.getPath() + ": running leader's stop logic.");
-                    stopLogic.run();
+                    try {
+                        stopLogic.run();
+                    } catch (Throwable t) {
+                        log.error("Running stop logic failed.", t);
+                    }
                 }
+            }
+
+            @Override
+            public void yield() {
+                LockUtils.withLock(stateLock, () -> {
+                    yieldRequested = true;
+                    stateCondition.signalAll();
+                });
             }
         });
         log.debug(config.lock.getPath() + ": a leader finished working.");

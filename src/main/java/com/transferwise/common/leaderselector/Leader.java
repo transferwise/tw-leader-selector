@@ -24,5 +24,12 @@ public interface Leader {
         boolean waitUntilShouldStop(Duration waitTime);
 
         void workAsyncUntilShouldStop(Runnable startLogic, Runnable stopLogic);
+
+        /**
+         * If asynchronous code would want to indicate, that it is interested of giving away the leader.
+         *
+         * <p> For example in the case where {@code workAsyncUntilShouldStop} is used.
+         */
+        void yield();
     }
 }

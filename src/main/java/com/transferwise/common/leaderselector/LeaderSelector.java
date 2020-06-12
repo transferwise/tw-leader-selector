@@ -333,6 +333,11 @@ public class LeaderSelector implements LeaderSelectorLifecycle {
                     stopLogic.run();
                 }
             }
+
+            @Override
+            public void yield() {
+                throw new UnsupportedOperationException("Yield is not supported in V1, please move to V2.");
+            }
         });
         log.debug(leaderPath + ": a leader finished working.");
     }

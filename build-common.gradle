@@ -21,14 +21,16 @@ jar {
 }
 
 dependencies {
+    spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.7.1'
+
     annotationProcessor 'org.projectlombok:lombok'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     compileOnly 'org.projectlombok:lombok'
-    compileOnly 'com.github.spotbugs:spotbugs-annotations:3.1.12'
+    compileOnly 'com.github.spotbugs:spotbugs-annotations:4.0.4'
 
     testAnnotationProcessor 'org.projectlombok:lombok'
     testCompileOnly 'org.projectlombok:lombok'
-    testCompileOnly 'com.github.spotbugs:spotbugs-annotations:3.1.12'
+    testCompileOnly 'com.github.spotbugs:spotbugs-annotations:4.0.4'
 }
 
 compileJava {
@@ -46,7 +48,7 @@ repositories {
 
 dependencyManagement {
     imports {
-        mavenBom "org.springframework.boot:spring-boot-starter-parent:2.2.2.RELEASE"
+        mavenBom "org.springframework.boot:spring-boot-starter-parent:2.2.8.RELEASE"
     }
 }
 
@@ -152,9 +154,23 @@ test {
 }
 
 spotbugs {
-    sourceSets = [sourceSets.main]
+    //sourceSets = [sourceSets.main]
     effort = "max"
 }
+
+spotbugsMain {
+    reports {
+        html {
+            enabled = true
+            stylesheet = 'fancy-hist.xsl'
+        }
+    }
+}
+
+spotbugsTest{
+    enabled = false
+}
+
 
 task addTag(type: Exec) {
     commandLine 'git', 'tag', "$project.name-$project.version", '-m', "$project.name-$project.version"

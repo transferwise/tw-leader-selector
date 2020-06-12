@@ -236,4 +236,34 @@ class LeaderSelectorV2IntSpec extends Specification {
             !lock.isOwned(Duration.ofSeconds(5))
             !lock.considerAsOwned()
     }
+
+    def "asynchronous code can request a leader yielding"() {
+        given:
+            AtomicInteger startCount = new AtomicInteger()
+            AtomicInteger stopCount = new AtomicInteger()
+        when:
+            LeaderSelectorV2 leaderSelector1 = builder().setLeader({ control ->
+                if (startCount.get() < 5) {
+                    control.workAsyncUntilShouldStop({
+                        log.info("Start logic.")
+                        startCount.incrementAndGet()
+                        control.yield()
+                    }, {
+                        log.info("Stop logic.")
+                        stopCount.incrementAndGet()
+                    })
+                }
+            }).build()
+
+            leaderSelector1.start()
+
+            await().until({
+                startCount.get() == 5 && stopCount.get() == 5
+            })
+
+            leaderSelector1.stop()
+            leaderSelector1.hasStopped()
+        then:
+            1 == 1
+    }
 }

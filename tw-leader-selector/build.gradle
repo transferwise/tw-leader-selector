@@ -1,0 +1,31 @@
+plugins {
+    id 'java-library'
+    id 'idea'
+    id 'groovy'
+}
+
+ext.projectName = 'TransferWise Leader Selector'
+ext.projectDescription = 'TransferWise Leader Selector - low noise consistent leader selector based on Curator Framework.'
+ext.projectGitHubRepoName = 'tw-leader-selector'
+ext.projectArtifactName = 'tw-leader-selector'
+
+apply from: '../build-common.gradle'
+apply from: '../build-library.gradle'
+
+dependencies {
+    implementation 'org.slf4j:slf4j-api'
+    implementation 'org.apache.zookeeper:zookeeper:3.5.8'
+    implementation 'org.apache.curator:curator-recipes:4.3.0'
+    implementation 'com.transferwise.common:tw-base-utils:1.2.8'
+    implementation 'org.apache.commons:commons-lang3'
+    implementation 'org.springframework:spring-context'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-actuator'
+    testImplementation 'cglib:cglib-nodep:3.3.0'
+    testImplementation 'org.spockframework:spock-core:1.3-groovy-2.5'
+    testImplementation 'org.spockframework:spock-spring:1.3-groovy-2.5'
+    testImplementation 'org.testcontainers:testcontainers:1.14.3'
+    testImplementation 'org.awaitility:awaitility:4.0.3'
+    testImplementation 'com.transferwise.common:tw-curator-starter:0.0.2'
+}

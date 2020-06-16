@@ -1,27 +1,34 @@
-apply plugin: 'java-library'
-apply plugin: 'maven-publish'
-apply plugin: 'groovy'
-apply plugin: 'signing'
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
+
 apply plugin: 'checkstyle'
 apply plugin: 'com.github.spotbugs'
-apply plugin: 'io.spring.dependency-management'
 
 group = 'com.transferwise.common'
 
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    withSourcesJar()
+    withJavadocJar()
+}
 
 jar {
     manifest {
         attributes(
-            "Implementation-Title": projectName,
-            "Implementation-Version": version
+                "Implementation-Title": projectName,
+                "Implementation-Version": archiveVersion
         )
     }
 }
 
 dependencies {
-    spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.7.1'
+    annotationProcessor platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+    implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+    compileOnly platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+    testAnnotationProcessor platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+
+    spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.10.1'
 
     annotationProcessor 'org.projectlombok:lombok'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
@@ -36,20 +43,15 @@ dependencies {
 compileJava {
     options.encoding = 'utf-8'
     options.compilerArgs << '-parameters'
+    options.compilerArgs << '-Xlint'
+    options.compilerArgs << '-Xlint:-processing'
 }
 
 repositories {
-    mavenCentral()
     maven {
         url 'https://arti.tw.ee/artifactory/libs-release'
     }
     mavenLocal()
-}
-
-dependencyManagement {
-    imports {
-        mavenBom "org.springframework.boot:spring-boot-starter-parent:2.2.8.RELEASE"
-    }
 }
 
 configurations {
@@ -58,103 +60,18 @@ configurations {
     }
 }
 
-ext.artifactoryUser = project.hasProperty("artifactoryUser") ? project.artifactoryUser : System.env.ARTIFACTORY_USER as String
-ext.artifactoryPassword = project.hasProperty("artifactoryPassword") ? project.artifactoryPassword : System.env.ARTIFACTORY_PASSWORD as String
-
-task sourcesJar(type: Jar) {
-    from sourceSets.main.allJava
-    archiveClassifier = 'sources'
-}
-
-task javadocJar(type: Jar) {
-    from javadoc
-    archiveClassifier = 'javadoc'
-}
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            artifactId = projectArtifactName
-            artifact sourcesJar
-            artifact javadocJar
-            versionMapping {
-                usage('java-api') {
-                    fromResolutionOf('runtimeClasspath')
-                }
-                usage('java-runtime') {
-                    fromResolutionResult()
-                }
-            }
-
-            pom {
-                name = projectName
-                description = projectDescription
-                url = "https://github.com/transferwise/${projectGitHubRepoName}"
-                packaging = "jar"
-                licenses {
-                    license {
-                        name = 'The Apache License, Version 2.0, Copyright 2019 TransferWise Ltd'
-                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    }
-                }
-                developers {
-                    developer {
-                        id = 'onukristo'
-                        name = 'Kristo Kuusküll'
-                        email = "kristo.kuuskull@transferwise.com"
-                        organization = "Transferwise Ltd"
-                        organizationUrl = "https://github.com/transferwise"
-                    }
-                }
-                scm {
-                    connection = "scm:git:git://github.com/transferwise/${projectGitHubRepoName}.git"
-                    developerConnection = "scm:git:ssh://github.com:transferwise/${projectGitHubRepoName}.git"
-                    url = "https://github.com/transferwise/${projectGitHubRepoName}"
-                }
-            }
-        }
-    }
-
-    signing {
-        sign publishing.publications.mavenJava
-    }
-
-    javadoc {
-        if (JavaVersion.current().isJava9Compatible()) {
-            options.addBooleanOption('html5', true)
-        }
-    }
-
-    repositories {
-        maven {
-            url "https://arti.tw.ee/artifactory/libs-${project.version.endsWith('-SNAPSHOT') ? 'snapshot' : 'release'}-local"
-            credentials {
-                username = artifactoryUser
-                password = artifactoryPassword
-            }
-        }
-        /*
-        maven {
-            url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-            credentials {
-                username sonatypeUsername
-                password sonatypePassword
-            }
-        }*/
-    }
-}
-
 test {
+    useJUnitPlatform()
     testLogging {
-        events "passed", "skipped", "failed", "standardError"
+        events TestLogEvent.STARTED, TestLogEvent.FAILED, TestLogEvent.SKIPPED, TestLogEvent.PASSED,
+                TestLogEvent.STANDARD_ERROR
+        showExceptions = true
         showStackTraces = true
-        exceptionFormat = 'full'
+        exceptionFormat = TestExceptionFormat.FULL
     }
 }
 
 spotbugs {
-    //sourceSets = [sourceSets.main]
     effort = "max"
 }
 
@@ -167,15 +84,18 @@ spotbugsMain {
     }
 }
 
-spotbugsTest{
+spotbugsTest {
     enabled = false
 }
 
+tasks.withType(Checkstyle) {
+    config = resources.text.fromFile(file('../google_checks.xml'))
 
-task addTag(type: Exec) {
-    commandLine 'git', 'tag', "$project.name-$project.version", '-m', "$project.name-$project.version"
+    maxWarnings = 0
+
+    reports {
+        xml.enabled false
+        html.enabled true
+    }
 }
-task pushTag(type: Exec) {
-    commandLine 'git', 'push', 'origin', "$project.name-$project.version"
-}
-pushTag.dependsOn addTag
+

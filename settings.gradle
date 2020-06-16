@@ -1,1 +1,5 @@
+rootProject.name = 'tw-leader-selector-root'
+
 include 'testapp'
+include 'tw-leader-selector'
+include 'tw-leader-selector-starter'

@@ -9,15 +9,16 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(value = "leader3.enabled", matchIfMissing = true)
 @Component
 public class Leader3 extends BaseLeader {
-    @Override
-    protected String getLeaderId() {
-        return "leader3";
-    }
 
-    @Override
-    protected Leader getLeader() {
-        return control -> {
-            throw new RuntimeException("Something went wrong in the worker.");
-        };
-    }
+  @Override
+  protected String getLeaderId() {
+    return "leader3";
+  }
+
+  @Override
+  protected Leader getLeader() {
+    return control -> {
+      throw new RuntimeException("Something went wrong in the worker.");
+    };
+  }
 }

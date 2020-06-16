@@ -13,21 +13,22 @@ import org.springframework.stereotype.Component;
   One node takes leadership and works for 10 seconds.
  */
 public class Leader1 extends BaseLeader {
-    @Override
-    protected String getLeaderId() {
-        return "leader1";
-    }
 
-    @Override
-    @SuppressWarnings("checkstyle:magicnumber")
-    protected Leader getLeader() {
-        return control -> {
-            if (control.shouldStop()) {
-                log.error("Leadership is not guaranteed anymore, we should stop.");
-            } else {
-                log.info("I'm now the leader.");
-                ExceptionUtils.doUnchecked(() -> Thread.sleep(10000));
-            }
-        };
-    }
+  @Override
+  protected String getLeaderId() {
+    return "leader1";
+  }
+
+  @Override
+  @SuppressWarnings("checkstyle:magicnumber")
+  protected Leader getLeader() {
+    return control -> {
+      if (control.shouldStop()) {
+        log.error("Leadership is not guaranteed anymore, we should stop.");
+      } else {
+        log.info("I'm now the leader.");
+        ExceptionUtils.doUnchecked(() -> Thread.sleep(10000));
+      }
+    };
+  }
 }

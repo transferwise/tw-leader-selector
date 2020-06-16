@@ -1,0 +1,43 @@
+plugins {
+    id 'java-library'
+    id 'idea'
+    id 'docker-compose'
+}
+
+ext.projectName = 'TransferWise Leader Selector Starter'
+ext.projectDescription = 'TransferWise Leader Selector - low noise consistent leader selector based on Curator Framework.'
+ext.projectGitHubRepoName = 'tw-leader-selector-starter'
+ext.projectArtifactName = 'tw-leader-selector-starter'
+
+apply from: '../build-common.gradle'
+apply from: '../build-library.gradle'
+
+dependencies {
+    api project(":tw-leader-selector:")
+    
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.apache.curator:curator-framework:4.3.0'
+
+    runtimeOnly 'com.transferwise.common:tw-curator-starter:0.0.2'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-actuator'
+}
+
+dockerCompose.isRequiredBy(test)
+
+dockerCompose {
+    useComposeFiles = ["src/test/resources/docker-compose.yml"]
+    // Create some flakiness on slower comps
+    // waitForTcpPorts = false
+
+    // Set to true if you have anomalies
+    stopContainers = false
+    removeContainers = false
+}
+
+test {
+    doFirst {
+        dockerCompose.exposeAsEnvironment(test)
+    }
+}

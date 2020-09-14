@@ -207,7 +207,12 @@ public class LeaderSelectorV2 implements LeaderSelectorLifecycle {
   }
 
   private void sleep(long ms) {
-    ExceptionUtils.doUnchecked(() -> Thread.sleep(ms));
+    try {
+      Thread.sleep(ms);
+    } catch (InterruptedException ignored) {
+      // We have other mechanisms to make sure, that things get closed down when executor(s) are shutdown.
+      Thread.interrupted();
+    }
   }
 
   private long currentTimeMillis() {
@@ -226,8 +231,7 @@ public class LeaderSelectorV2 implements LeaderSelectorLifecycle {
     private ExecutorService executorService;
 
     /**
-     * The minimum interval between taking leaderships. It is non-zero by default, so novice users can not overload the Zookeeper cluster. It 
-     * is very
+     * The minimum interval between taking leaderships. It is non-zero by default, so novice users can not overload the Zookeeper cluster. It is very
      * rarely needed to be changed.
      */
 
@@ -242,9 +246,9 @@ public class LeaderSelectorV2 implements LeaderSelectorLifecycle {
     private Duration tickDuration = Duration.ofSeconds(2);
     /**
      * Number of work iterations until the leader selector will be automatically stopped.
-     * 
+     *
      * <p>&lt;null> has special value of indefinite iterations until explicit stop is called.
-     * 
+     *
      * <p>This parameter can be useful for one-time workloads.
      */
     @Setter

@@ -122,9 +122,9 @@ public class SharedReentrantLock implements ILock {
       LostCountingConnectionStateListener.SessionState sessionState = config.lostCountingConnectionStateListener
           .getSessionState();
 
-      if (sessionState == null){
+      if (sessionState == null) {
         throw new IllegalStateException("SessionState is not set. Make sure you use tw-curator and remove your own defined CuratorFramework bean."
-        +" Alternatively get LostCountingConnectionStateListener registered before CuratorFramework is started.");
+            + " Alternatively get LostCountingConnectionStateListener registered before CuratorFramework is started.");
       }
       if (sessionState.isConnected()) {
         return (!config.serverSideCheck || isTheLockIdInTheServerOurs());

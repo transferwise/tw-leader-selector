@@ -62,14 +62,14 @@ public abstract class BaseLeader implements SmartLifecycle {
       }).start();
     }
   }
-  
+
   @Override
   public void start() {
     if (leaderSelector != null) {
       leaderSelector.start();
     }
   }
-  
+
   @Override
   public boolean isRunning() {
     return false;

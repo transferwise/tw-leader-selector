@@ -97,14 +97,14 @@ leaderSelector.start();
 
 Leader selector will keep executing that code repeatedly, until it is stopped.
 > It is always adviced to stop the leader selector during a graceful shutdown, so we don't create any errors and noise when application finally closes.
-> You may want to turn towards [tw-graceful-shutdown library](https://github.com/transferwise/tw-graceful-shutdown), which make it easy.
+> You may want to turn towards [tw-graceful-shutdown library](https://github.com/transferwise/tw-graceful-shutdown), which makes it easy.
 ```java
 leaderSelector.stop();
 ```
 
 Notice the `com.transferwise.common.leaderselector.Leader.Control` parameter given to the leader, this is quite important and allows the leader code
 to check and control the leadership status by itself.
-> Please consult with it's [javadoc](tw-leader-selector/src/main/java/com/transferwise/common/leaderselector/Leader.java) how and when it can be used.
+> Please consult with its [javadoc](tw-leader-selector/src/main/java/com/transferwise/common/leaderselector/Leader.java) how and when it can be used.
 
 As mentioned in the "Distributed locking" paragraph, we need to periodically verify, if we still are the leader or not. If we are not, we need to
 stop all the work and also rollback any ongoing database transactions.

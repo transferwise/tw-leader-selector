@@ -26,7 +26,8 @@ runtimeOnly "com.transferwise.common:tw-leader-selector-starter"
 
 ### Distributed lock
 
-Even when the library is named as leader selector, it can be used just for distributed locking.
+Even when the library is named as "leader selector", it can be used just for distributed locking as well.
+> Actually the leader selector is just a fancy implementation around a distributed lock.
 
 ```java
 @Autowired
@@ -41,20 +42,20 @@ if (acquired) {
   } finally{
     lock.release();
   }
-}else{
-  log.error("Lock was not acquired in time. Should throw some mad exception.");
+} else{
+  log.error("Lock was not acquired in time. Should throw some mad exception here.");
 }
 ```
 
-Notice, that in case of Zookeeper we are dealing with networked distributed system, lots of things can go wrong. The Simplest case imagined can be
-that network connection drops.
+Notice, that in case of Zookeeper we are dealing with networked distributed system, where lots of things can go wrong. The simplest case imagined can
+be that network connection drops.
 
-Now our code just keeps executing without knowing this happened, you will easily end up having multiple nodes executing the same code at the same
-time. Usually the Zookeeper's session timeout is set to it's maximum possible value of 40s, which means, that usually, after 40s from a network
+Now if our code just keeps executing without knowing this has happened, we will easily end up having multiple nodes executing the same code at the
+same time. Usually the Zookeeper's session timeout is set to its maximum possible value of 40s, which means, that usually, after 40s from a network
 disruption, the Zookeeper cluster is giving the lock away.
 
-So for any long taking process, we need to periodically check if we are still absolutely sure we do own that lock. And if that is not the case anymore
-we should stop the work and rollback the transaction.
+So, for any long taking process, we need to periodically check if we are still absolutely sure that we do own that lock. And, if that is not the case
+any more we should stop the work and in case of database related workloads, rollback the transaction.
 
 ```java
 @Transactional
@@ -62,19 +63,22 @@ void doSomeNotThreadSafeMagicAlone(ILock lock){
     List<Book> books = fetchMillionBooksFromDatabase();
     for(Book book : books) {
       processBook(book);
-      if(!lock.considerAsOwned) {
+      if (!lock.considerAsOwned) {
         throw new IllegalStateException("We somehow lost the lock. Let's rollback the transaction.")
       }
     }
 }
 ```
 
+> Once more, using this library alone does not guarantee single threaded execution. You need to understand the failure scenarios
+> and periodically check/ask from the library if one has happened.
+
 ### Leader Selector
 
 Leader selector use cases usually start with creating an `ILock` instance like shown above. Leader selector itself can be created by a builder.
 
 ```java
-var leaderSelector = new LeaderSelectorV2.Builder().setLock(lock).setExecutorService(executorService).leaderSelector(myLeader).build();
+var leaderSelector = new LeaderSelectorV2.Builder().setLock(lock).setExecutorService(executorService).leaderSelector(aLeader).build();
 ```
 
 A simple use case where you just want to run some short running code under a leader selector:
@@ -89,20 +93,20 @@ var leaderSelector = new LeaderSelectorV2.Builder().setLock(lock).setExecutorSer
 leaderSelector.start();
 ```
 
-Notice, that you need to start the leader selector in order it to start doing anything useful.
+> Notice, that you need to start the leader selector in order it to start doing anything useful.
 
 Leader selector will keep executing that code repeatedly, until it is stopped.
 > It is always adviced to stop the leader selector during a graceful shutdown, so we don't create any errors and noise when application finally closes.
-
+> You may want to turn towards [tw-graceful-shutdown library](https://github.com/transferwise/tw-graceful-shutdown), which make it easy.
 ```java
 leaderSelector.stop();
 ```
 
 Notice the `com.transferwise.common.leaderselector.Leader.Control` parameter given to the leader, this is quite important and allows the leader code
 to check and control the leadership status by itself.
-> Please consult with it's javadoc how and when it can be used.
+> Please consult with it's [javadoc](tw-leader-selector/src/main/java/com/transferwise/common/leaderselector/Leader.java) how and when it can be used.
 
-So as mentioned in the "Distributed locking" paragraph, we need to periodically verify, if we still the leader or not. If we are not, we need to
+As mentioned in the "Distributed locking" paragraph, we need to periodically verify, if we still are the leader or not. If we are not, we need to
 stop all the work and also rollback any ongoing database transactions.
 
 For asking that state, you can use the same `control` parameter, namely `control.shouldStop()` method.
@@ -115,7 +119,9 @@ Leader leader = new Leader(control -> {
 });
 ```
 
-Some more advanced case could be complex asynchronous work being done under the leader selector.
+Some more advanced case could be a complex asynchronous work being done under the leader selector, for example 
+(tw-tasks)[https://github.com/transferwise/tw-tasks-executor] task cleaner process looks like following.
+
 ```java
 
 MutableObject<ScheduledTaskExecutor.TaskHandle> taskHandleHolder = new MutableObject<>();

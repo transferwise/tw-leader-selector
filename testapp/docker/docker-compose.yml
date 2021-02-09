@@ -3,7 +3,6 @@ version: '3.7'
 services:
   zookeeper:
     image: bitnami/zookeeper:3.5.5
-    hostname: zookeeper
     ports:
       - "2281:2181"
     environment:

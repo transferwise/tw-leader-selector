@@ -22,10 +22,6 @@ idea.project {
     targetBytecodeVersion = JavaVersion.VERSION_1_8
 }
 
-ext {
-    springBootVersion = "2.3.8.RELEASE"
-}
-
 yamlValidator {
     searchPaths = ['.circleci/']
     allowDuplicates = false

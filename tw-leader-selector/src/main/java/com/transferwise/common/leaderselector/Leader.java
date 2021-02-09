@@ -28,7 +28,7 @@ public interface Leader {
     boolean waitUntilShouldStop(Duration waitTime);
 
     /**
-     * Executes `startLogic`, then waits until we are not sure we have the leadership anymore; then runs `stopLogic`.
+     * Executes `startLogic`, then waits until we are not sure anymore we have the leadership; then runs `stopLogic`.
      * 
      * <p>Can be convenient for long running async processes, where `startLogic` starts a process and `stopLogic` stops it.
      */

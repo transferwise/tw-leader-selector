@@ -6,9 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.5.0] - 2021-02-09
 ## Changed
-- Removed deprecated `LeaderSelector`. `LeaderSelectorV2` can be used instead of it.
-- Fixed documentation
-- Upgraded dependencies
+- Removed deprecated `LeaderSelector`. `LeaderSelectorV2` can be used instead.
+- Fixed and improved documentation.
+- Upgraded dependencies.
 
 ## [1.4.0] - 2020-10-01
 ## Changed

@@ -62,6 +62,7 @@ repositories {
     maven {
         url 'https://arti.tw.ee/artifactory/libs-release'
     }
+ 
     mavenLocal()
 }
 

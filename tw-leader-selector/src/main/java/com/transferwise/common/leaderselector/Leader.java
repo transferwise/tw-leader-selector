@@ -16,6 +16,8 @@ public interface Leader {
     /**
      * Returns true if the leadership may have been lost, or the leader selector has been asked to stop. In all those cases the work should be stopped
      * and the method `work()` exited.
+     * 
+     * <p>In case of database transactions they should be rolled back.
      */
     boolean shouldStop();
 
@@ -25,6 +27,11 @@ public interface Leader {
     @SuppressWarnings("UnusedReturnValue")
     boolean waitUntilShouldStop(Duration waitTime);
 
+    /**
+     * Executes `startLogic`, then waits until we are not sure we have the leadership anymore; then runs `stopLogic`.
+     * 
+     * <p>Can be convenient for long running async processes, where `startLogic` starts a process and `stopLogic` stops it.
+     */
     void workAsyncUntilShouldStop(Runnable startLogic, Runnable stopLogic);
 
     /**

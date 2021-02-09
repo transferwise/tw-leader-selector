@@ -1,6 +1,8 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
+apply from: "${project.rootDir}/build.libraries.gradle"
+
 apply plugin: 'checkstyle'
 apply plugin: 'com.github.spotbugs'
 
@@ -23,21 +25,22 @@ jar {
 }
 
 dependencies {
-    annotationProcessor platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
-    implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
-    compileOnly platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
-    testAnnotationProcessor platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+    annotationProcessor platform(libraries.springBootDependencies)
+    implementation platform(libraries.springBootDependencies)
+    compileOnly platform(libraries.springBootDependencies)
+    testAnnotationProcessor platform(libraries.springBootDependencies)
 
-    spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.10.1'
+    spotbugsPlugins libraries.findSecBugsPlugin
 
-    annotationProcessor 'org.projectlombok:lombok'
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-    compileOnly 'org.projectlombok:lombok'
-    compileOnly 'com.github.spotbugs:spotbugs-annotations:4.0.4'
+    annotationProcessor libraries.lombok
+    annotationProcessor libraries.springBootConfigurationProcessor
+   
+    compileOnly libraries.lombok
+    compileOnly libraries.spotbugsAnnotations
 
-    testAnnotationProcessor 'org.projectlombok:lombok'
-    testCompileOnly 'org.projectlombok:lombok'
-    testCompileOnly 'com.github.spotbugs:spotbugs-annotations:4.0.4'
+    testAnnotationProcessor libraries.lombok
+    testCompileOnly libraries.lombok
+    testCompileOnly libraries.spotbugsAnnotations
 }
 
 compileJava {
@@ -45,6 +48,14 @@ compileJava {
     options.compilerArgs << '-parameters'
     options.compilerArgs << '-Xlint'
     options.compilerArgs << '-Xlint:-processing'
+}
+
+compileTestJava {
+    sourceCompatibility = JavaVersion.VERSION_15
+    targetCompatibility = JavaVersion.VERSION_15
+    javaCompiler = javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(15)
+    }
 }
 
 repositories {
@@ -61,6 +72,10 @@ configurations {
 }
 
 test {
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(15)
+    }
+    
     useJUnitPlatform()
     testLogging {
         events TestLogEvent.STARTED, TestLogEvent.FAILED, TestLogEvent.SKIPPED, TestLogEvent.PASSED,
@@ -97,5 +112,11 @@ tasks.withType(Checkstyle) {
         xml.enabled false
         html.enabled true
     }
+}
+
+yamlValidator {
+    searchPaths = ['src']
+    allowDuplicates = false
+    searchRecursive = true
 }
 

@@ -2,7 +2,6 @@ package com.transferwise.common.leaderselector;
 
 import java.util.Collections;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.support.TestPropertySourceUtils;
@@ -16,7 +15,7 @@ public class ZookeeperContainerInitializer implements ApplicationContextInitiali
   public static GenericContainer zookeeperInstance;
 
   @Override
-  public void initialize(@NotNull ConfigurableApplicationContext applicationContext) {
+  public void initialize(ConfigurableApplicationContext applicationContext) {
     zookeeperInstance = startServiceZookeeperContainer(applicationContext);
   }
 

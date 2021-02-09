@@ -5,73 +5,145 @@
 
 Provides a proper leader selector recipe with following benefits compared to Curator's recipe.
 
-- Not based on Thread interruptions (very bad and old practice), so the control over the selector is completely graceful.
-Additional benefit from it is, that it is very quiet on graceful shutdown.
-- Better model for most use cases, especially for "periodic background jobs". Also for use cases where halting and resuming
-of some work is needed.
-- Much easier for a developer to use, no need to implement nor even know about connection state listeners.
+- Not based on Thread interruptions (very bad and old practice), so the control over the selector is completely graceful. Additional benefit from it
+  is, that it is very quiet on graceful shutdown.
+- Better model for most use cases, especially for "periodic background jobs". Also. for use cases where halting and resuming of some work is needed.
+- Much easier for a developer to use for full consistency, no need to implement nor even know about connection state listeners.
 - Non-blocking on all steps.
-- More robust and reliable. Has additional built-in assertions, including checking the actual leader's node data and 
-comparing to our (assumed) leader's id.
+- More robust and reliable. Has additional built-in assertions against network partitioning, including checking the actual leader's node data and
+  comparing to our (assumed) leader's id.
 
 ## How to use
 
-Install the library using gradle:
+### Setup
 
-```
-implementation "com.transferwise.common:tw-leader-selector:1.1.+"
-implementation "org.apache.curator:curator-framework:4.2.+"
+First we need to add dependencies:
+
+```groovy
+implementation "com.transferwise.common:tw-leader-selector"
+runtimeOnly "com.transferwise.common:tw-leader-selector-starter"
 ```
 
-Example code for a simple use case:
+### Distributed lock
+
+Even when the library is named as leader selector, it can be used just for distributed locking.
 
 ```java
-LeaderSelector leaderSelector = new LeaderSelector(
-    curatorFramework, 
-    "/tw/leaderSelector/testApp/leader1",
-    executorService,
-    control -> {
-        log.info("I'm now the leader and will do some work.");
-    }
-);
+@Autowired
+private SharedReentrantLockBuilderFactory sharedReentrantLockBuilderFactory;
+
+ILock lock = sharedReentrantLockBuilderFactory.createBuilder("/tw/my/shared/unique/lock/path").build();
+
+boolean acquired = lock.acquire(Duration.ofSeconds(10));
+if (acquired) {
+  try {
+    doSomeNotThreadSafeMagicAlone(lock);
+  } finally{
+    lock.release();
+  }
+}else{
+  log.error("Lock was not acquired in time. Should throw some mad exception.");
+}
 ```
 
-When you have a long running code, you should periodically ask if you may continue to be a leader or should stop. It is essential, that this checking is happening at least more often than Zookeeper's session timeout, which maximum is only
-20 x Zookeeper ticks = 40s, but the more frequent those checks are the better.
+Notice, that in case of Zookeeper we are dealing with networked distributed system, lots of things can go wrong. The Simplest case imagined can be
+that network connection drops.
 
-If you are doing transactional work, it is advised to do a check just before the commit:
+Now our code just keeps executing without knowing this happened, you will easily end up having multiple nodes executing the same code at the same
+time. Usually the Zookeeper's session timeout is set to it's maximum possible value of 40s, which means, that usually, after 40s from a network
+disruption, the Zookeeper cluster is giving the lock away.
+
+So for any long taking process, we need to periodically check if we are still absolutely sure we do own that lock. And if that is not the case anymore
+we should stop the work and rollback the transaction.
 
 ```java
-LeaderSelector leaderSelector = new LeaderSelector(
-    curatorFramework, 
-    "/tw/leaderSelector/testApp/leader2",
-    executorService,
-    control -> {
-        for (int i=0; i<10; i++){
-            if (control.shouldStop()){
-                return;
-            }
-
-            log.info("Doing work for chunk " + i + ".");
-            ExceptionUtils.doUnchecked(() -> Thread.sleep(1000));
-        }
+@Transactional
+void doSomeNotThreadSafeMagicAlone(ILock lock){
+    List<Book> books = fetchMillionBooksFromDatabase();
+    for(Book book : books) {
+      processBook(book);
+      if(!lock.considerAsOwned) {
+        throw new IllegalStateException("We somehow lost the lock. Let's rollback the transaction.")
+      }
     }
-);
+}
 ```
 
-And the state has some more convenient methods for asynchronous work, `waitUntilStop()`
+### Leader Selector
+
+Leader selector use cases usually start with creating an `ILock` instance like shown above. Leader selector itself can be created by a builder.
+
+```java
+var leaderSelector = new LeaderSelectorV2.Builder().setLock(lock).setExecutorService(executorService).leaderSelector(myLeader).build();
+```
+
+A simple use case where you just want to run some short running code under a leader selector:
+
+```java
+var leaderSelector = new LeaderSelectorV2.Builder().setLock(lock).setExecutorService(executorService).leaderSelector(
+    control -> {
+      log.info("I'm now the leader and will do some work.");
+    })
+.build();
+
+leaderSelector.start();
+```
+
+Notice, that you need to start the leader selector in order it to start doing anything useful.
+
+Leader selector will keep executing that code repeatedly, until it is stopped.
+> It is always adviced to stop the leader selector during a graceful shutdown, so we don't create any errors and noise when application finally closes.
+
+```java
+leaderSelector.stop();
+```
+
+Notice the `com.transferwise.common.leaderselector.Leader.Control` parameter given to the leader, this is quite important and allows the leader code
+to check and control the leadership status by itself.
+> Please consult with it's javadoc how and when it can be used.
+
+So as mentioned in the "Distributed locking" paragraph, we need to periodically verify, if we still the leader or not. If we are not, we need to
+stop all the work and also rollback any ongoing database transactions.
+
+For asking that state, you can use the same `control` parameter, namely `control.shouldStop()` method.
+
+```java
+Leader leader = new Leader(control -> {
+    while(!control.shouldStop()) {
+      doSomeImportantButQuickWork(control);
+    }
+});
+```
+
+Some more advanced case could be complex asynchronous work being done under the leader selector.
+```java
+
+MutableObject<ScheduledTaskExecutor.TaskHandle> taskHandleHolder = new MutableObject<>();
+Leader leader = new Leader(control -> {
+  control.workAsyncUntilShouldStop(
+  () -> {
+    taskHandleHolder.setValue(scheduledTaskExecutor.scheduleAtFixedInterval(this::deleteFinishedOldTasks, Duration.ofMinutes(1),
+      Duration.ofMinutes(1));
+  },
+  () -> {
+    if (taskHandleHolder.getValue() != null) {
+      taskHandleHolder.getValue().stop();
+      taskHandleHolder.getValue().waitUntilStopped(Duration.ofMinutes(1));
+    }
+    log.info("Tasks cleaner stopped.");
+  });
+});
+```
 
 ## License
+
 Copyright 2019 TransferWise Ltd.
- 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
- 
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy
+of the License at
+
 http://www.apache.org/licenses/LICENSE-2.0
- 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under
+the License.

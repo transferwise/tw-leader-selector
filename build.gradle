@@ -6,13 +6,14 @@ buildscript {
         mavenLocal()
     }
     dependencies {
-        classpath "com.avast.gradle:gradle-docker-compose-plugin:0.12.1"
+        classpath "com.avast.gradle:gradle-docker-compose-plugin:0.13.4"
     }
 }
 
 plugins {
     id 'idea'
-    id "com.github.spotbugs" version "4.3.0" apply false
+    id "com.github.spotbugs" version "4.6.0" apply false
+    id "at.zierler.yamlvalidator" version "1.5.0"
 }
 
 idea.project {
@@ -22,5 +23,11 @@ idea.project {
 }
 
 ext {
-    springBootVersion = "2.2.8.RELEASE"
+    springBootVersion = "2.3.8.RELEASE"
+}
+
+yamlValidator {
+    searchPaths = ['.circleci/']
+    allowDuplicates = false
+    searchRecursive = true
 }

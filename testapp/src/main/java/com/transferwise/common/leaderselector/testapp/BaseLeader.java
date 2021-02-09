@@ -1,14 +1,15 @@
 package com.transferwise.common.leaderselector.testapp;
 
+import com.transferwise.common.leaderselector.ILock;
 import com.transferwise.common.leaderselector.Leader;
-import com.transferwise.common.leaderselector.LeaderSelector;
 import com.transferwise.common.leaderselector.LeaderSelectorLifecycle;
+import com.transferwise.common.leaderselector.LeaderSelectorV2;
+import com.transferwise.common.leaderselector.SharedReentrantLockBuilderFactory;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.curator.framework.CuratorFramework;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.core.env.Environment;
@@ -21,7 +22,7 @@ public abstract class BaseLeader implements SmartLifecycle {
   private LeaderSelectorLifecycle leaderSelector;
 
   @Autowired
-  private CuratorFramework curatorFramework;
+  private SharedReentrantLockBuilderFactory sharedReentrantLockBuilderFactory;
 
   @Autowired
   private Environment env;
@@ -30,10 +31,8 @@ public abstract class BaseLeader implements SmartLifecycle {
   public void init() {
     if (!"false".equalsIgnoreCase(env.getProperty(getLeaderId() + ".enabled"))) {
       ExecutorService executorService = Executors.newCachedThreadPool();
-      //noinspection deprecation
-      leaderSelector = new LeaderSelector(curatorFramework,
-          "/tw/leaderSelector/testApp/" + getLeaderId(), executorService,
-          getLeader());
+      ILock lock = sharedReentrantLockBuilderFactory.createBuilder("/tw/leaderSelector/testApp/" + getLeaderId()).build();
+      leaderSelector = new LeaderSelectorV2.Builder().setLock(lock).setExecutorService(executorService).setLeader(getLeader()).build();
     }
   }
 

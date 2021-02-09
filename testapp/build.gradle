@@ -5,12 +5,10 @@ ext.projectName = 'TransferWise Leader Selector Test App'
 apply from: '../build-common.gradle'
 
 dependencies {
-    annotationProcessor 'org.projectlombok:lombok'
-    implementation "org.springframework.boot:spring-boot-starter-web"
-    implementation "org.springframework.boot:spring-boot-starter-actuator"
-    implementation 'org.projectlombok:lombok'
-    implementation 'org.slf4j:slf4j-api'
-    implementation('org.apache.curator:curator-recipes:4.3.0')
-    implementation 'com.transferwise.common:tw-base-utils:1.2.8'
+    implementation libraries.springBootStarterWeb
+    implementation libraries.springBootStarterActuator
+    implementation libraries.slf4jApi
+    implementation libraries.curatorRecipes
+    implementation libraries.twBaseUtils
     implementation project(":tw-leader-selector-starter")
 }

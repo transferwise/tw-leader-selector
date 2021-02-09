@@ -5,8 +5,9 @@ leader4.enabled: false
 
 logging.level.com.transferwise.common.leaderselector: DEBUG
 
-zookeeper.connect-string: localhost:2281,localhost:2282
-
+tw-curator:
+  zookeeper-connect-string: localhost:2281
+  
 ---
 
 spring:

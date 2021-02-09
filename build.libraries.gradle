@@ -1,0 +1,27 @@
+ext {
+    libraries = [
+            // version defined
+            awaitility                      : 'org.awaitility:awaitility:4.0.3',
+            curatorFramework                : 'org.apache.curator:curator-framework:5.1.0',
+            curatorRecipes                  : 'org.apache.curator:curator-recipes:5.1.0',
+            findSecBugsPlugin               : 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.11.0',
+            spotbugsAnnotations             : 'com.github.spotbugs:spotbugs-annotations:4.2.0',
+            springBootDependencies          : 'org.springframework.boot:spring-boot-dependencies:2.3.8.RELEASE',
+            testContainers                  : 'org.testcontainers:testcontainers:1.15.1',
+            twBaseUtils                     : 'com.transferwise.common:tw-base-utils:1.3.2',
+            twContext                       : 'com.transferwise.common:tw-context:0.7.0',
+            twCuratorStarter                : 'com.transferwise.common:tw-curator-starter:0.2.3',
+            zookeeper                       : 'org.apache.zookeeper:zookeeper:3.6.2',
+
+            // versions managed by spring-boot-dependencies platform
+            commonsLang3                    : 'org.apache.commons:commons-lang3',
+            lombok                          : 'org.projectlombok:lombok',
+            slf4jApi                        : 'org.slf4j:slf4j-api',
+            springBootConfigurationProcessor: 'org.springframework.boot:spring-boot-configuration-processor',
+            springBootStarter               : 'org.springframework.boot:spring-boot-starter',
+            springBootStarterActuator       : 'org.springframework.boot:spring-boot-starter-actuator',
+            springBootStarterTest           : 'org.springframework.boot:spring-boot-starter-test',
+            springBootStarterWeb            : 'org.springframework.boot:spring-boot-starter-web',
+            springContext                   : 'org.springframework:spring-context',
+    ]
+}

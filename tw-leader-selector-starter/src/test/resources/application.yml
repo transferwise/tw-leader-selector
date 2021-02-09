@@ -4,3 +4,5 @@ spring:
 
 tw-curator:
   zookeeper-connect-string: "localhost:${ZOOKEEPER_TCP_2181}"
+  retry-times: 1
+  session-timeout: 5s

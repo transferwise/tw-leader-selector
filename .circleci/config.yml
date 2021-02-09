@@ -1,0 +1,91 @@
+version: 2
+
+references:
+  container_config: &container_config
+    machine: true
+    resource_class: medium
+    environment:
+      TERM: vt100
+      GRADLE_OPTS: '-Dorg.gradle.console=plain'
+  working_directory: &working_directory
+    working_directory: ~/tw-leader-selector
+
+jobs:
+  build:
+    <<: *working_directory
+    <<: *container_config
+
+    steps:
+      - checkout
+      - restore_cache:
+          key: tw-leader-selector-gradle-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
+      - run:
+          name: Assemble jar
+          command: ./gradlew assemble --refresh-dependencies --console=plain --no-daemon
+      - run:
+          name: Run tests
+          command: ./gradlew check --console=plain --no-daemon --stacktrace
+      - save_cache:
+          paths:
+            - ~/.gradle/
+          key: tw-leader-selector-gradle-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
+      - run:
+          name: Gather test results
+          shell: /bin/bash
+          command: |
+            pushd tw-leader-selector/build/reports/tests/test && zip -r ~/junit_html.zip * && popd || true
+          when: always
+      - run:
+          name: Gather starter test results
+          shell: /bin/bash
+          command: |
+            pushd tw-leader-selector-starter/build/reports/tests/test && zip -r ~/junit_starter_html.zip * && popd || true
+          when: always
+      - store_test_results:
+          path: ./tw-leader-selector-starter/build/test-results/
+      - store_test_results:
+          path: ./tw-leader-selector/build/test-results/
+      - store_artifacts:
+          path: ~/junit_starter_html.zip
+          when: always
+      - store_artifacts:
+          path: ~/junit_html.zip
+          when: always
+      - persist_to_workspace:
+          root: .
+          paths:
+            - '*'
+  artifacts-publish:
+    <<: *working_directory
+    <<: *container_config
+    steps:
+      - attach_workspace:
+          at: ~/tw-leader-selector
+      - restore_cache:
+          key: tw-leader-selector-gradle-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
+      - run:
+          name: Set git config
+          command: |
+            mkdir -p ~/.ssh
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+            git config --global user.name "TransferWise CircleCI" && git config --global user.email circle@circle.tw.ee
+      - run:
+          name: Publish artifacts
+          command: |
+            if ./.circleci/version-changed.sh tw-leader-selector-starter ; then
+              ./gradlew pushTag publish --no-daemon --console=plain
+            fi
+
+workflows:
+  version: 2
+  build_and_publish:
+    jobs:
+      - build
+      - artifacts-publish:
+          context: artifactory-deploy
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - master

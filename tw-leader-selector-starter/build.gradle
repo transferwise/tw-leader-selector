@@ -15,13 +15,15 @@ apply from: '../build-library.gradle'
 dependencies {
     api project(":tw-leader-selector:")
     
-    implementation 'org.springframework.boot:spring-boot-starter'
-    implementation 'org.apache.curator:curator-framework:4.3.0'
+    implementation libraries.springBootStarter
 
-    runtimeOnly 'com.transferwise.common:tw-curator-starter:0.0.2'
+    runtimeOnly libraries.twCuratorStarter
 
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.boot:spring-boot-starter-actuator'
+    testImplementation libraries.springBootStarterTest
+    testImplementation libraries.springBootStarterActuator
+    testImplementation libraries.awaitility
+    testImplementation libraries.twBaseUtils
+    testImplementation libraries.commonsLang3;
 }
 
 dockerCompose.isRequiredBy(test)
@@ -32,8 +34,10 @@ dockerCompose {
     // waitForTcpPorts = false
 
     // Set to true if you have anomalies
-    stopContainers = true
+    stopContainers = false
+
     removeContainers = true
+    removeVolumes = true
 }
 
 test {

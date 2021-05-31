@@ -1,7 +1,8 @@
 # tw-leader-selector
 
 ![Apache 2](https://img.shields.io/hexpm/l/plug.svg)
-![Java 1.8](https://img.shields.io/badge/Java-1.8-blue.svg)
+![Java 11](https://img.shields.io/badge/Java-11-blue.svg)
+![Maven Central](https://badgen.net/maven/v/maven-central/com.transferwise.common/tw-leader-selector)
 
 Provides a proper leader selector recipe with following benefits compared to Curator's recipe.
 
@@ -143,7 +144,7 @@ Leader leader = new Leader(control -> {
 
 ## License
 
-Copyright 2019 TransferWise Ltd.
+Copyright 2021 TransferWise Ltd.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy
 of the License at

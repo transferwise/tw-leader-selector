@@ -9,8 +9,8 @@ apply plugin: 'com.github.spotbugs'
 group = 'com.transferwise.common'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
     withSourcesJar()
     withJavadocJar()
 }
@@ -22,6 +22,11 @@ jar {
                 "Implementation-Version": archiveVersion
         )
     }
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
 }
 
 dependencies {
@@ -56,14 +61,6 @@ compileTestJava {
     javaCompiler = javaToolchains.compilerFor {
         languageVersion = JavaLanguageVersion.of(15)
     }
-}
-
-repositories {
-    maven {
-        url 'https://arti.tw.ee/artifactory/libs-release'
-    }
- 
-    mavenLocal()
 }
 
 configurations {

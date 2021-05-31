@@ -2,7 +2,7 @@ apply plugin: 'java'
 
 ext.projectName = 'TransferWise Leader Selector Test App'
 
-apply from: '../build-common.gradle'
+apply from: '../build.common.gradle'
 
 dependencies {
     implementation libraries.springBootStarterWeb

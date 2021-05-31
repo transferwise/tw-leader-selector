@@ -9,8 +9,8 @@ ext.projectDescription = 'TransferWise Leader Selector - low noise consistent le
 ext.projectGitHubRepoName = 'tw-leader-selector-starter'
 ext.projectArtifactName = 'tw-leader-selector-starter'
 
-apply from: '../build-common.gradle'
-apply from: '../build-library.gradle'
+apply from: '../build.common.gradle'
+apply from: '../build.publishing.gradle'
 
 dependencies {
     api project(":tw-leader-selector:")
@@ -23,7 +23,7 @@ dependencies {
     testImplementation libraries.springBootStarterActuator
     testImplementation libraries.awaitility
     testImplementation libraries.twBaseUtils
-    testImplementation libraries.commonsLang3;
+    testImplementation libraries.commonsLang3
 }
 
 dockerCompose.isRequiredBy(test)

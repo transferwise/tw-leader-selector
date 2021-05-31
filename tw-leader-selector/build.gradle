@@ -8,8 +8,8 @@ ext.projectDescription = 'TransferWise Leader Selector - low noise consistent le
 ext.projectGitHubRepoName = 'tw-leader-selector'
 ext.projectArtifactName = 'tw-leader-selector'
 
-apply from: '../build-common.gradle'
-apply from: '../build-library.gradle'
+apply from: '../build.common.gradle'
+apply from: '../build.publishing.gradle'
 
 dependencies {
     implementation libraries.slf4jApi

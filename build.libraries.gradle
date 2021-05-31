@@ -10,7 +10,7 @@ ext {
             testContainers                  : 'org.testcontainers:testcontainers:1.15.3',
             twBaseUtils                     : 'com.transferwise.common:tw-base-utils:1.5.0',
             twContext                       : 'com.transferwise.common:tw-context:0.11.0',
-            twCuratorStarter                : 'com.transferwise.common:tw-curator-starter:0.2.3',
+            twCuratorStarter                : 'com.transferwise.common:tw-curator-starter:0.3.0',
             zookeeper                       : 'org.apache.zookeeper:zookeeper:3.6.3',
 
             // versions managed by spring-boot-dependencies platform

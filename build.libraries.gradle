@@ -1,12 +1,12 @@
 ext {
     libraries = [
             // version defined
-            awaitility                      : 'org.awaitility:awaitility:4.1.0',
-            curatorFramework                : 'org.apache.curator:curator-framework:5.1.0',
-            curatorRecipes                  : 'org.apache.curator:curator-recipes:5.1.0',
+            awaitility                      : 'org.awaitility:awaitility:4.1.1',
+            curatorFramework                : 'org.apache.curator:curator-framework:5.2.0',
+            curatorRecipes                  : 'org.apache.curator:curator-recipes:5.2.0',
             findSecBugsPlugin               : 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.11.0',
-            spotbugsAnnotations             : 'com.github.spotbugs:spotbugs-annotations:4.2.3',
-            springBootDependencies          : 'org.springframework.boot:spring-boot-dependencies:2.3.11.RELEASE',
+            spotbugsAnnotations             : 'com.github.spotbugs:spotbugs-annotations:4.5.2',
+            springBootDependencies          : 'org.springframework.boot:spring-boot-dependencies:2.5.8',
             testContainers                  : 'org.testcontainers:testcontainers:1.15.3',
             twBaseUtils                     : 'com.transferwise.common:tw-base-utils:1.5.0',
             twContext                       : 'com.transferwise.common:tw-context:0.11.0',

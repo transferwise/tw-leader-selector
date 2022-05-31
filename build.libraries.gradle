@@ -1,17 +1,17 @@
 ext {
     libraries = [
             // version defined
-            awaitility                      : 'org.awaitility:awaitility:4.1.1',
-            curatorFramework                : 'org.apache.curator:curator-framework:5.2.0',
-            curatorRecipes                  : 'org.apache.curator:curator-recipes:5.2.0',
+            awaitility                      : 'org.awaitility:awaitility:4.2.0',
+            curatorFramework                : 'org.apache.curator:curator-framework:5.2.1',
+            curatorRecipes                  : 'org.apache.curator:curator-recipes:5.2.1',
             findSecBugsPlugin               : 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.11.0',
-            spotbugsAnnotations             : 'com.github.spotbugs:spotbugs-annotations:4.5.2',
-            springBootDependencies          : 'org.springframework.boot:spring-boot-dependencies:2.5.8',
-            testContainers                  : 'org.testcontainers:testcontainers:1.15.3',
-            twBaseUtils                     : 'com.transferwise.common:tw-base-utils:1.5.0',
-            twContext                       : 'com.transferwise.common:tw-context:0.11.0',
-            twCuratorStarter                : 'com.transferwise.common:tw-curator-starter:0.3.0',
-            zookeeper                       : 'org.apache.zookeeper:zookeeper:3.6.3',
+            spotbugsAnnotations             : "com.github.spotbugs:spotbugs-annotations:${spotbugs.toolVersion.get()}",
+            springBootDependencies          : 'org.springframework.boot:spring-boot-dependencies:2.5.14',
+            testContainers                  : 'org.testcontainers:testcontainers:1.17.2',
+            twBaseUtils                     : 'com.transferwise.common:tw-base-utils:1.7.1',
+            twContext                       : 'com.transferwise.common:tw-context:0.11.1',
+            twCuratorStarter                : 'com.transferwise.common:tw-curator-starter:0.3.2',
+            zookeeper                       : 'org.apache.zookeeper:zookeeper:3.8.0',
 
             // versions managed by spring-boot-dependencies platform
             commonsLang3                    : 'org.apache.commons:commons-lang3',

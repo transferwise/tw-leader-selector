@@ -2,7 +2,7 @@ import org.eclipse.jgit.api.errors.RefAlreadyExistsException
 
 buildscript {
     dependencies {
-        classpath "com.avast.gradle:gradle-docker-compose-plugin:0.14.12"
+        classpath "com.avast.gradle:gradle-docker-compose-plugin:0.16.4"
     }
 }
 

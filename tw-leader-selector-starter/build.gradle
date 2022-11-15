@@ -16,6 +16,7 @@ dependencies {
     api project(":tw-leader-selector:")
     
     implementation libraries.springBootStarter
+    implementation libraries.curatorRecipes
 
     runtimeOnly libraries.twCuratorStarter
 

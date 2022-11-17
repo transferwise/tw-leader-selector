@@ -32,7 +32,9 @@ tw-curator.zookeeper-connect-string: ${ENV_ZOOKEEPER_CONNECT_STRING}
 ```
 
 Libraries depending on tw-leader-selector might have use cases in which leader selection is not required and they want
-to avoid introducing the Zookeeper dependency. In that case use the following configuration:
+to avoid introducing the Zookeeper dependency. In that the service should not define the property 
+`tw-curator.zookeeper-connect-string`. Not defining the Zookeeper address is enough, but for explicitness, one can 
+define the following property instead:
 
 ```yaml
 tw-curator.disabled: true

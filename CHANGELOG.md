@@ -6,9 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.8.0] - 2022-11-16
 - Only autoconfigure beans if CuratorFramework is available. With this change, users of this library does not always 
-have to introduce Zookeeper as a dependency. E.g. `Wise Kafka Processor` can support database cleanup that depends on 
-leader selection provided by this library. But `Wise Kafka Processor` can also be used without a DB dependency, in which
-case we want to avoid introducing the dependency on Zookeeper.
+have to introduce Zookeeper as a dependency.
 
 ## [1.7.0] - 2022-05-31
 - Dependencies upgrades.

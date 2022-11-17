@@ -25,6 +25,21 @@ implementation "com.transferwise.common:tw-leader-selector"
 runtimeOnly "com.transferwise.common:tw-leader-selector-starter"
 ```
 
+Then configure the Zookeeper address:
+
+```yaml
+tw-curator.zookeeper-connect-string: ${ENV_ZOOKEEPER_CONNECT_STRING}
+```
+
+Libraries depending on tw-leader-selector might have use cases in which leader selection is not required and they want
+to avoid introducing the Zookeeper dependency. In that the service should not define the property 
+`tw-curator.zookeeper-connect-string`. Not defining the Zookeeper address is enough, but for explicitness, one can 
+define the following property instead:
+
+```yaml
+tw-curator.disabled: true
+```
+
 ### Distributed lock
 
 Even when the library is named as "leader selector", it can be used just for distributed locking as well.

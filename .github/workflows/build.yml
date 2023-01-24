@@ -27,14 +27,6 @@ jobs:
       SPRING_BOOT_VERSION: ${{ matrix.spring_boot_version }}
       GRADLE_OPTS: "-Djava.security.egd=file:/dev/./urandom -Dorg.gradle.parallel=true"
       IN_CI: true
-    services:
-      mariadb:
-        image: mariadb:10.6
-        ports:
-          - 3306:3306
-        env:
-          MYSQL_ROOT_PASSWORD: q1w2e3r4
-          MYSQL_DATABASE: mydb
     steps:
       - name: "Install packages"
         run: apt-get update && apt-get install -y git unzip docker docker-compose
@@ -55,6 +47,8 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: compileTest --console=plain --info --stacktrace --parallel
+      - name: Setup Debug Session
+        uses: csexton/debugger-action@master
       - name: "Run checks"
         uses: gradle/gradle-build-action@v2
         with:

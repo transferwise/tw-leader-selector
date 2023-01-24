@@ -37,7 +37,7 @@ public class ZookeeperContainerInitializer implements ApplicationContextInitiali
 
     var connectHost = resolveDockerHost(zookeeper.getDockerClient());
     var connectString = connectHost + ":" + zkPort;
-    
+
     TestPropertySourceUtils
         .addInlinedPropertiesToEnvironment(appContext, "tw-curator.zookeeper-connect-string=" + connectString);
 
@@ -45,8 +45,8 @@ public class ZookeeperContainerInitializer implements ApplicationContextInitiali
 
     return zookeeper;
   }
-  
-  private String resolveDockerHost(DockerClient client){
+
+  private String resolveDockerHost(DockerClient client) {
     if (DockerClientConfigUtils.IN_A_CONTAINER) {
       return client.inspectNetworkCmd()
           .withNetworkId("bridge")

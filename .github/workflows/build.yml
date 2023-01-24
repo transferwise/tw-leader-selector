@@ -30,7 +30,7 @@ jobs:
       TESTCONTAINERS_HOST_OVERRIDE: "host.docker.internal"
     steps:
       - name: "Install packages"
-        run: apt-get update && apt-get install -y git unzip docker docker-compose curl
+        run: apt-get update && apt-get install -y git unzip docker docker-compose
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Setup Gradle

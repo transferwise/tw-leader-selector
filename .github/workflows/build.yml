@@ -29,7 +29,7 @@ jobs:
       IN_CI: true
     steps:
       - name: "Install packages"
-        run: apt-get update && apt-get install -y git unzip docker docker-compose
+        run: apt-get update && apt-get install -y git unzip docker docker-compose curl
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Setup Gradle

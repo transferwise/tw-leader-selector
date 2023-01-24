@@ -21,6 +21,8 @@ jobs:
           - 2.7.6
           - 2.6.14
           - 2.5.14
+    container:
+      image: azul/zulu-openjdk:11
     env:
       SPRING_BOOT_VERSION: ${{ matrix.spring_boot_version }}
       GRADLE_OPTS: "-Djava.security.egd=file:/dev/./urandom -Dorg.gradle.parallel=true"
@@ -34,8 +36,8 @@ jobs:
           MYSQL_ROOT_PASSWORD: q1w2e3r4
           MYSQL_DATABASE: mydb
     steps:
-      #- name: "Install packages"
-      #  run: apt-get update && apt-get install -y git unzip
+      - name: "Install packages"
+        run: apt-get update && apt-get install -y git unzip docker docker-compose
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Setup Gradle
@@ -101,8 +103,8 @@ jobs:
     runs-on:
       - ubuntu-latest
     needs: matrix_build
-    #container:
-    #  image: azul/zulu-openjdk:11
+    container:
+      image: azul/zulu-openjdk:11
     steps:
       # Needed hacks to properly fail the build when one matrix build fails.
       - name: Do something so that GHA is happy
@@ -110,8 +112,8 @@ jobs:
       - name: Verify matrix jobs succeeded
         if: ${{ needs.matrix_build.result != 'success' }}
         run: exit 1
-      #- name: "Install packages"
-      #  run: apt-get update && apt-get install -y git unzip
+      - name: "Install packages"
+        run: apt-get update && apt-get install -y git unzip
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Setup Gradle

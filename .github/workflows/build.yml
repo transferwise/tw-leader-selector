@@ -47,8 +47,8 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: compileTest --console=plain --info --stacktrace --parallel
-      - name: Setup Debug Session
-        uses: csexton/debugger-action@master
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: "Run checks"
         uses: gradle/gradle-build-action@v2
         with:

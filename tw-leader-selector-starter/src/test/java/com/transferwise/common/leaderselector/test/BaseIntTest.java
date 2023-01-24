@@ -9,9 +9,5 @@ public class BaseIntTest {
   @AfterEach
   void baseSetup() {
     TestClock.reset();
-
-    System.getenv().forEach((k, v) -> {
-      System.out.println("ENV " + k + "=" + v);
-    });
   }
 }

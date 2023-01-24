@@ -23,7 +23,6 @@ import org.springframework.test.context.ContextConfiguration;
 @SpringBootTest(classes = {TestConfiguration.class})
 @ContextConfiguration(initializers = {ZookeeperContainerInitializer.class})
 @Slf4j
-@Disabled
 class LeaderSelectorV2IntTest {
 
   @Autowired

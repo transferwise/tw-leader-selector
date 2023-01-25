@@ -20,10 +20,10 @@ public class LeaderSelectorV2 implements LeaderSelectorLifecycle {
 
   private final Builder config;
 
-  private volatile boolean stopRequested;
   private volatile boolean yieldRequested;
   private volatile boolean working;
-  private volatile boolean stopWorkIterationRequested = false;
+  private volatile RunningState runningState = RunningState.STOPPED;
+  private volatile RunningState runningStateIntent = RunningState.STOPPED;
 
   private final Lock stateLock;
   private final Condition stateCondition;
@@ -39,14 +39,19 @@ public class LeaderSelectorV2 implements LeaderSelectorLifecycle {
 
   @Override
   public void start() {
-    stopRequested = false;
+    LockUtils.withLock(stateLock, () -> {
+      if (runningState == RunningState.RUNNING) {
+        throw new IllegalStateException("Leader selector is already running.");
+      }
+      runningStateIntent = RunningState.RUNNING;
+      runningState = RunningState.RUNNING;
+    });
 
     config.executorService.submit(() -> {
-      while (!stopRequested) {
+      while (runningStateIntent == RunningState.RUNNING) {
         try {
-          while (!stopRequested) {
-            long timeToSleepMs = lastWorkTryingTimeMs == -1 ? -1 :
-                lastWorkTryingTimeMs - currentTimeMillis() + config.minimumWorkTime.toMillis();
+          while (runningStateIntent == RunningState.RUNNING) {
+            long timeToSleepMs = lastWorkTryingTimeMs == -1 ? -1 : lastWorkTryingTimeMs - currentTimeMillis() + config.minimumWorkTime.toMillis();
             if (timeToSleepMs > 0) {
               sleep(config.tickDuration.toMillis());
             } else {
@@ -60,6 +65,11 @@ public class LeaderSelectorV2 implements LeaderSelectorLifecycle {
           sleep(config.tickDuration.toMillis());
         }
       }
+
+      LockUtils.withLock(stateLock, () -> {
+        runningState = RunningState.STOPPED;
+        stateCondition.signalAll();
+      });
     });
   }
 
@@ -67,14 +77,14 @@ public class LeaderSelectorV2 implements LeaderSelectorLifecycle {
   public void stop() {
     log.debug(config.lock.getPath() + ": stopping.");
     LockUtils.withLock(stateLock, () -> {
-      stopRequested = true;
+      runningStateIntent = RunningState.STOPPED;
       stateCondition.signalAll();
     });
   }
 
   @Override
   public boolean hasStopped() {
-    return LockUtils.withLock(stateLock, () -> stopRequested && !working);
+    return LockUtils.withLock(stateLock, () -> runningState != RunningState.RUNNING);
   }
 
   @Override
@@ -101,7 +111,7 @@ public class LeaderSelectorV2 implements LeaderSelectorLifecycle {
     boolean lockAcquired = false;
     try {
       while (!lockAcquired) {
-        if (stopRequested) {
+        if (runningStateIntent != RunningState.RUNNING) {
           return;
         }
         try {
@@ -112,11 +122,10 @@ public class LeaderSelectorV2 implements LeaderSelectorLifecycle {
         }
       }
       boolean doWork = LockUtils.withLock(stateLock, () -> {
-        if (stopRequested) {
+        if (runningStateIntent != RunningState.RUNNING) {
           return false;
         }
         working = true;
-        stopWorkIterationRequested = false;
         return true;
       });
       if (doWork) {
@@ -150,7 +159,7 @@ public class LeaderSelectorV2 implements LeaderSelectorLifecycle {
     config.leader.work(new Leader.Control() {
       @Override
       public boolean shouldStop() {
-        return stopRequested || stopWorkIterationRequested || !considerAsLeader();
+        return runningStateIntent != RunningState.RUNNING || !considerAsLeader();
       }
 
       @Override
@@ -265,5 +274,9 @@ public class LeaderSelectorV2 implements LeaderSelectorLifecycle {
 
       return new LeaderSelectorV2(this);
     }
+  }
+
+  protected enum RunningState {
+    RUNNING, STOPPED
   }
 }

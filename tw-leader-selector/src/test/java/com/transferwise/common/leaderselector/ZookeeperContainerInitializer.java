@@ -32,7 +32,9 @@ public class ZookeeperContainerInitializer implements ApplicationContextInitiali
     // Allow Zookeeper to be restarted without needing to reconfigure CuratorFramework port.
     zookeeper.setPortBindings(Collections.singletonList("" + zkPort + ":" + ZOOKEEPER_PORT));
 
-    String connectString = "localhost:" + zkPort;
+    var connectHost = zookeeper.getHost();
+    var connectString = connectHost + ":" + zkPort;
+
     TestPropertySourceUtils
         .addInlinedPropertiesToEnvironment(appContext, "tw-curator.zookeeper-connect-string=" + connectString);
 
@@ -40,4 +42,5 @@ public class ZookeeperContainerInitializer implements ApplicationContextInitiali
 
     return zookeeper;
   }
+
 }

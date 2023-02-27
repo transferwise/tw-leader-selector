@@ -1,0 +1,6 @@
+site_name: Tw-Leader-Selector Documentation
+repo_url: https://github.com/transferwise/tw-leader-selector
+edit_uri: blob/master/docs/
+nav:
+  - Overview and usage: index.md
+  - Contributing: contributing.md

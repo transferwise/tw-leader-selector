@@ -8,8 +8,8 @@ import com.transferwise.common.leaderselector.SharedReentrantLockBuilderFactory;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.core.env.Environment;
@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-public abstract class BaseLeader implements SmartLifecycle {
+public abstract class BaseLeader implements SmartLifecycle, InitializingBean {
 
   private LeaderSelectorLifecycle leaderSelector;
 
@@ -27,8 +27,8 @@ public abstract class BaseLeader implements SmartLifecycle {
   @Autowired
   private Environment env;
 
-  @PostConstruct
-  public void init() {
+  @Override
+  public void afterPropertiesSet() {
     if (!"false".equalsIgnoreCase(env.getProperty(getLeaderId() + ".enabled"))) {
       ExecutorService executorService = Executors.newCachedThreadPool();
       ILock lock = sharedReentrantLockBuilderFactory.createBuilder("/tw/leaderSelector/testApp/" + getLeaderId()).build();

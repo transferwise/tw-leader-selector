@@ -1,19 +1,18 @@
 ext {
-    springBootVersion = "${System.getenv("SPRING_BOOT_VERSION") ?: '2.7.11'}"
+    springBootVersion = "${System.getenv("SPRING_BOOT_VERSION") ?: '2.6.14'}"
     
     libraries = [
             // version defined
             awaitility                      : 'org.awaitility:awaitility:4.2.0',
             curatorFramework                : 'org.apache.curator:curator-framework:5.5.0',
             curatorRecipes                  : 'org.apache.curator:curator-recipes:5.5.0',
-            findSecBugsPlugin               : 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.11.0',
+            findSecBugsPlugin               : 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.12.0',
             spotbugsAnnotations             : "com.github.spotbugs:spotbugs-annotations:${spotbugs.toolVersion.get()}",
             springBootDependencies          : "org.springframework.boot:spring-boot-dependencies:${springBootVersion}",
             testContainers                  : 'org.testcontainers:testcontainers:1.18.0',
-            twBaseUtils                     : 'com.transferwise.common:tw-base-utils:1.9.0',
-            twContext                       : 'com.transferwise.common:tw-context:0.11.2',
-            twCuratorStarter                : 'com.transferwise.common:tw-curator-starter:0.4.0',
-            zookeeper                       : 'org.apache.zookeeper:zookeeper',
+            twBaseUtils                     : 'com.transferwise.common:tw-base-utils:1.10.1',
+            twContext                       : 'com.transferwise.common:tw-context:0.12.0',
+            twCuratorStarter                : 'com.transferwise.common:tw-curator-starter:0.5.0',
 
             // versions managed by spring-boot-dependencies platform
             commonsLang3                    : 'org.apache.commons:commons-lang3',
@@ -25,5 +24,6 @@ ext {
             springBootStarterTest           : 'org.springframework.boot:spring-boot-starter-test',
             springBootStarterWeb            : 'org.springframework.boot:spring-boot-starter-web',
             springContext                   : 'org.springframework:spring-context',
+            zookeeper                       : 'org.apache.zookeeper:zookeeper',
     ]
 }

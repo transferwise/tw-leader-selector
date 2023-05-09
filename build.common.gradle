@@ -8,6 +8,31 @@ apply from: "${project.rootDir}/build.libraries.gradle"
 
 group = 'com.transferwise.common'
 
+configurations {
+    local {
+        canBeResolved(false)
+        canBeConsumed(false)
+    }
+    compileClasspath {
+        extendsFrom(local)
+    }
+    runtimeClasspath {
+        extendsFrom(local)
+    }
+    testCompileClasspath {
+        extendsFrom(local)
+    }
+    testRuntimeClasspath {
+        extendsFrom(local)
+    }
+    annotationProcessor {
+        extendsFrom(local)
+    }
+    testAnnotationProcessor {
+        extendsFrom(local)
+    }
+}
+
 java {
     if (springBootVersion.startsWith("3.")){
         sourceCompatibility = JavaVersion.VERSION_17
@@ -36,10 +61,7 @@ repositories {
 }
 
 dependencies {
-    annotationProcessor platform(libraries.springBootDependencies)
-    implementation platform(libraries.springBootDependencies)
-    compileOnly platform(libraries.springBootDependencies)
-    testAnnotationProcessor platform(libraries.springBootDependencies)
+    local platform(libraries.springBootDependencies)
 
     spotbugsPlugins libraries.findSecBugsPlugin
 

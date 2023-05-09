@@ -1,4 +1,4 @@
-# Tw-EntryPoints documentation
+# Tw-LeaderSelector documentation
 
 ## Table of Contents
 * [Introduction](#intro)

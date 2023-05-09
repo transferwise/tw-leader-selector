@@ -8,9 +8,40 @@ apply from: "${project.rootDir}/build.libraries.gradle"
 
 group = 'com.transferwise.common'
 
+configurations {
+    local {
+        canBeResolved(false)
+        canBeConsumed(false)
+    }
+    compileClasspath {
+        extendsFrom(local)
+    }
+    runtimeClasspath {
+        extendsFrom(local)
+    }
+    testCompileClasspath {
+        extendsFrom(local)
+    }
+    testRuntimeClasspath {
+        extendsFrom(local)
+    }
+    annotationProcessor {
+        extendsFrom(local)
+    }
+    testAnnotationProcessor {
+        extendsFrom(local)
+    }
+}
+
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    if (springBootVersion.startsWith("3.")){
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17   
+    }
+    else {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
     withSourcesJar()
     withJavadocJar()
 }
@@ -30,10 +61,7 @@ repositories {
 }
 
 dependencies {
-    annotationProcessor platform(libraries.springBootDependencies)
-    implementation platform(libraries.springBootDependencies)
-    compileOnly platform(libraries.springBootDependencies)
-    testAnnotationProcessor platform(libraries.springBootDependencies)
+    local platform(libraries.springBootDependencies)
 
     spotbugsPlugins libraries.findSecBugsPlugin
 
@@ -56,10 +84,10 @@ compileJava {
 }
 
 compileTestJava {
-    sourceCompatibility = JavaVersion.VERSION_15
-    targetCompatibility = JavaVersion.VERSION_15
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
     javaCompiler = javaToolchains.compilerFor {
-        languageVersion = JavaLanguageVersion.of(15)
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
 
@@ -71,7 +99,7 @@ configurations {
 
 test {
     javaLauncher = javaToolchains.launcherFor {
-        languageVersion = JavaLanguageVersion.of(15)
+        languageVersion = JavaLanguageVersion.of(17)
     }
     
     useJUnitPlatform()

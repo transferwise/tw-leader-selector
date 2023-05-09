@@ -18,11 +18,11 @@ jobs:
       max-parallel: 100
       matrix:
         spring_boot_version:
-          - 2.7.6
+          - 3.0.6
+          - 2.7.11
           - 2.6.14
-          - 2.5.14
     container:
-      image: azul/zulu-openjdk:11
+      image: azul/zulu-openjdk:17
     env:
       SPRING_BOOT_VERSION: ${{ matrix.spring_boot_version }}
       GRADLE_OPTS: "-Djava.security.egd=file:/dev/./urandom -Dorg.gradle.parallel=true"
@@ -35,7 +35,6 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
         with:
-          gradle-version: current
           gradle-home-cache-cleanup: true
           # Comment out when you are upgrading gradle in a branch and doing tons of commits you would need to test.
           # cache-read-only: false
@@ -96,7 +95,7 @@ jobs:
       - ubuntu-latest
     needs: matrix_build
     container:
-      image: azul/zulu-openjdk:11
+      image: azul/zulu-openjdk:17
     steps:
       # Needed hacks to properly fail the build when one matrix build fails.
       - name: Do something so that GHA is happy
@@ -111,7 +110,6 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
         with:
-          gradle-version: current
           gradle-home-cache-cleanup: true
           # Comment out when you are upgrading gradle in a branch and doing tons of commits you would need to test.
           # cache-read-only: false

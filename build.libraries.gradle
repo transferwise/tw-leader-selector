@@ -10,9 +10,9 @@ ext {
             spotbugsAnnotations             : "com.github.spotbugs:spotbugs-annotations:${spotbugs.toolVersion.get()}",
             springBootDependencies          : "org.springframework.boot:spring-boot-dependencies:${springBootVersion}",
             testContainers                  : 'org.testcontainers:testcontainers:1.18.0',
-            twBaseUtils                     : 'com.transferwise.common:tw-base-utils:1.10.1',
-            twContext                       : 'com.transferwise.common:tw-context:0.12.0',
-            twCuratorStarter                : 'com.transferwise.common:tw-curator-starter:0.5.0',
+            twBaseUtils                     : 'com.transferwise.common:tw-base-utils:1.12.3',
+            twContext                       : 'com.transferwise.common:tw-context:1.0.1',
+            twCuratorStarter                : 'com.transferwise.common:tw-curator-starter:0.5.1',
 
             // versions managed by spring-boot-dependencies platform
             commonsLang3                    : 'org.apache.commons:commons-lang3',

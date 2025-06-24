@@ -36,7 +36,7 @@ configurations {
 java {
     if (springBootVersion.startsWith("3.")){
         sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17   
+        targetCompatibility = JavaVersion.VERSION_17
     }
     else {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -67,13 +67,14 @@ dependencies {
 
     annotationProcessor libraries.lombok
     annotationProcessor libraries.springBootConfigurationProcessor
-   
+
     compileOnly libraries.lombok
     compileOnly libraries.spotbugsAnnotations
 
     testAnnotationProcessor libraries.lombok
     testCompileOnly libraries.lombok
     testCompileOnly libraries.spotbugsAnnotations
+    testRuntimeOnly libraries.junitPlatformLauncher
 }
 
 compileJava {
@@ -101,7 +102,7 @@ test {
     javaLauncher = javaToolchains.launcherFor {
         languageVersion = JavaLanguageVersion.of(17)
     }
-    
+
     useJUnitPlatform()
     testLogging {
         events TestLogEvent.STARTED, TestLogEvent.FAILED, TestLogEvent.SKIPPED, TestLogEvent.PASSED,

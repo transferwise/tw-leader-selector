@@ -25,5 +25,6 @@ ext {
             springBootStarterWeb            : 'org.springframework.boot:spring-boot-starter-web',
             springContext                   : 'org.springframework:spring-context',
             zookeeper                       : 'org.apache.zookeeper:zookeeper',
+            junitPlatformLauncher           : 'org.junit.platform:junit-platform-launcher',
     ]
 }

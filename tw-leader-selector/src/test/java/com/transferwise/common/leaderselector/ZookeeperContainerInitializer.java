@@ -20,7 +20,7 @@ public class ZookeeperContainerInitializer implements ApplicationContextInitiali
   }
 
   private GenericContainer startServiceZookeeperContainer(ConfigurableApplicationContext appContext) {
-    GenericContainer zookeeper = new GenericContainer("bitnami/zookeeper:3.5.5")
+    GenericContainer zookeeper = new GenericContainer("bitnamilegacy/zookeeper:3.9.3")
         .withNetworkAliases("zk-service")
         .withEnv("ZOO_STANDALONE_ENABLED", "true")
         .withEnv("ALLOW_ANONYMOUS_LOGIN", "yes")
